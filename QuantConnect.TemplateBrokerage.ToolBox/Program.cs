@@ -13,13 +13,15 @@
  * limitations under the License.
 */
 
+using QuantConnect.ToolBox.SamcoDataDownloader;
+
 namespace QuantConnect.TemplateBrokerage.ToolBox
 {
     static class Program
     {
         static void Main(string[] args)
         {
-            var downloader = new TemplateBrokerageDownloader();
+            var downloader = new SamcoDataDownloaderProgram();
 
         }
     }
