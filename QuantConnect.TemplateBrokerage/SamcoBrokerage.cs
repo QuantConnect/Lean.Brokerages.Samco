@@ -431,17 +431,26 @@ namespace QuantConnect.Brokerages.Samco
                 foreach (var item in allOrders.orderBookDetails.Where(z => z.orderStatus.ToUpperInvariant() == "OPEN"))
                 {
                     Order order;
+
+                    var itemTotalQty = Convert.ToInt32(item.totalQuantity, CultureInfo.InvariantCulture);
+                    var originalQty = Convert.ToInt32(item.quantity, CultureInfo.InvariantCulture);
+                    var brokerageSecurityType = _symbolMapper.GetBrokerageSecurityType(item.tradingSymbol);
+                    var symbol = _symbolMapper.GetLeanSymbol(item.tradingSymbol, brokerageSecurityType);
+                    var time = Convert.ToDateTime(item.orderTime, CultureInfo.InvariantCulture);
+                    var price = Convert.ToDecimal(item.orderPrice, CultureInfo.InvariantCulture);
+                    var quantity = item.transactionType.ToLowerInvariant() == "sell" ? -itemTotalQty : originalQty;
+
                     if (item.orderType.ToUpperInvariant() == "MKT")
                     {
-                        order = new MarketOrder { Price = Convert.ToDecimal(item.orderPrice, CultureInfo.InvariantCulture) };
+                        order = new MarketOrder(symbol, quantity, time);
                     }
                     else if (item.orderType.ToUpperInvariant() == "L")
                     {
-                        order = new LimitOrder { LimitPrice = Convert.ToDecimal(item.orderPrice, CultureInfo.InvariantCulture) };
+                        order = new LimitOrder(symbol, quantity, price, time);
                     }
                     else if (item.orderType.ToUpperInvariant() == "SL-M")
                     {
-                        order = new StopMarketOrder { StopPrice = Convert.ToDecimal(item.orderPrice, CultureInfo.InvariantCulture) };
+                        order = new StopMarketOrder(symbol, quantity, price, time); 
                     }
                     else
                     {
@@ -450,15 +459,9 @@ namespace QuantConnect.Brokerages.Samco
                         continue;
                     }
 
-                    var brokerageSecurityType = _symbolMapper.GetBrokerageSecurityType(item.tradingSymbol);
-                    var itemTotalQty = Convert.ToInt32(item.totalQuantity, CultureInfo.InvariantCulture);
-                    var originalQty = Convert.ToInt32(item.quantity, CultureInfo.InvariantCulture);
-                    order.Quantity = item.transactionType.ToLowerInvariant() == "sell" ? -itemTotalQty : originalQty;
-                    order.BrokerId = new List<string> { item.orderNumber };
-                    order.Symbol = _symbolMapper.GetLeanSymbol(item.tradingSymbol, brokerageSecurityType);
-                    order.Time = Convert.ToDateTime(item.orderTime, CultureInfo.InvariantCulture);
+                    order.BrokerId.Add(item.orderNumber);
                     order.Status = ConvertOrderStatus(item);
-                    order.Price = Convert.ToDecimal(item.orderPrice, CultureInfo.InvariantCulture);
+                    
                     list.Add(order);
                 }
                 foreach (var item in list)

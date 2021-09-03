@@ -256,7 +256,7 @@ namespace QuantConnect.Tests.Brokerages.Samco
 
             // pick a security with low, but some, volume
             var symbol = Symbols.SBIN;
-            var order = new MarketOrder(symbol, qty, DateTime.UtcNow) { Id = 1 };
+            var order = new MarketOrder(symbol, qty, DateTime.UtcNow);
             OrderProvider.Add(order);
             Brokerage.PlaceOrder(order);
 
