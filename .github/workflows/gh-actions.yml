@@ -38,4 +38,4 @@ jobs:
         run: dotnet build /p:Configuration=Release /v:quiet /p:WarningLevel=1 QuantConnect.SamcoBrokerage.sln
 
       - name: Run Tests
-        run: dotnet test ./QuantConnect.SamcoBrokerage.Tests/bin/Release/QuantConnect.SamcoBrokerage.Tests.dll
+        run: dotnet test ./QuantConnect.Tests/bin/Release/QuantConnect.Tests.dll
