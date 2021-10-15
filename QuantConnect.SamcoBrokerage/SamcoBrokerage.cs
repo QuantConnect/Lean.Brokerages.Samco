@@ -47,6 +47,7 @@ namespace QuantConnect.Brokerages.Samco
         private readonly CancellationTokenSource _ctsFillMonitor = new CancellationTokenSource();
         private readonly AutoResetEvent _fillMonitorResetEvent = new AutoResetEvent(false);
         private readonly Task _fillMonitorTask;
+        private readonly Task _checkConnectionTask;
         private readonly int _fillMonitorTimeout = Config.GetInt("samco.FillMonitorTimeout", 500);
         private readonly ConcurrentDictionary<int, decimal> _fills = new ConcurrentDictionary<int, decimal>();
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
@@ -137,7 +138,7 @@ namespace QuantConnect.Brokerages.Samco
             _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
 
             // we start a task that will be in charge of expiring and refreshing our session id
-            Task.Factory.StartNew(CheckConnection, _ctsFillMonitor.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            _checkConnectionTask = Task.Factory.StartNew(CheckConnection, _ctsFillMonitor.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
             // A single connection to stream.stocknote.com is only valid for 24 hours;
             // expect to be disconnected at the 24 hour mark
@@ -241,6 +242,7 @@ namespace QuantConnect.Brokerages.Samco
             _samcoAPI.Dispose();
             _ctsFillMonitor.Dispose();
             _fillMonitorTask.Wait(TimeSpan.FromSeconds(5));
+            _checkConnectionTask.Wait(TimeSpan.FromSeconds(5));
             _fillMonitorResetEvent.Dispose();
             _reconnectTimer.Dispose();
         }
@@ -876,11 +878,11 @@ namespace QuantConnect.Brokerages.Samco
                 try
                 {
                     // we start trying to reconnect during extended market hours so we are all set for normal hours
-                    if (IsConnected && IsExchangeOpen(extendedMarketHours: true))
+                    if (!IsConnected && IsExchangeOpen(extendedMarketHours: true))
                     {
                         if (Interlocked.Increment(ref _heartBeatMonitor) > 5 || _sessionId == null)
                         {
-                            Log.Error($"CheckConnection(): last heart beat {_heartBeatMonitor * timeoutLoop}, resetting connection...",
+                            Log.Error($"CheckConnection(): resetting connection...",
                                 overrideMessageFloodProtection: true);
 
                             try
