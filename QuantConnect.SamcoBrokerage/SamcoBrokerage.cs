@@ -74,8 +74,7 @@ namespace QuantConnect.Brokerages.Samco
         private readonly List<string> _unSubscribeInstrumentTokens = new List<string>();
 
         private DateTime _lastTradeTickTime;
-        private string _sessionId;
-        private int _heartBeatMonitor;
+        private int _waitCounter;
 
         /// <summary>
         /// The websockets client instance
@@ -206,8 +205,7 @@ namespace QuantConnect.Brokerages.Samco
             Log.Trace("SamcoBrokerage.Connect(): Connecting...");
 
             _samcoAPI.Authorize(_samcoApiKey, _samcoApiSecret, _samcoYob);
-            _sessionId = _samcoAPI.SamcoToken;
-            WebSocket.Initialize("wss://stream.stocknote.com", _sessionId);
+            WebSocket.Initialize("wss://stream.stocknote.com", _samcoAPI.SamcoToken);
 
             var resetEvent = new ManualResetEvent(false);
             EventHandler triggerEvent = (o, args) => resetEvent.Set();
@@ -228,7 +226,6 @@ namespace QuantConnect.Brokerages.Samco
             if (WebSocket.IsOpen)
             {
                 WebSocket.Close();
-                _sessionId = null;
             }
         }
 
@@ -240,9 +237,10 @@ namespace QuantConnect.Brokerages.Samco
         {
             _aggregator.Dispose();
             _samcoAPI.Dispose();
-            _ctsFillMonitor.Dispose();
+            _ctsFillMonitor.Cancel();
             _fillMonitorTask.Wait(TimeSpan.FromSeconds(5));
             _checkConnectionTask.Wait(TimeSpan.FromSeconds(5));
+            _ctsFillMonitor.Dispose();
             _fillMonitorResetEvent.Dispose();
             _reconnectTimer.Dispose();
         }
@@ -460,7 +458,7 @@ namespace QuantConnect.Brokerages.Samco
                     }
                     else if (item.orderType.ToUpperInvariant() == "SL-M")
                     {
-                        order = new StopMarketOrder(symbol, quantity, price, time); 
+                        order = new StopMarketOrder(symbol, quantity, price, time);
                     }
                     else
                     {
@@ -471,7 +469,7 @@ namespace QuantConnect.Brokerages.Samco
 
                     order.BrokerId.Add(item.orderNumber);
                     order.Status = ConvertOrderStatus(item);
-                    
+
                     list.Add(order);
                 }
                 foreach (var item in list)
@@ -567,7 +565,7 @@ namespace QuantConnect.Brokerages.Samco
 
                     // Generate submitted event
                     OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, orderFee, "Samco Order Event") { Status = OrderStatus.Submitted });
-                    Log.Trace($"Order submitted successfully - OrderId: {order.Id}");
+                    Log.Trace($"SamcoBrokerage.PlaceOrder(): Order submitted successfully - OrderId: {order.Id}");
 
                     _pendingOrders.TryAdd(brokerId, order);
                     _fillMonitorResetEvent.Set();
@@ -674,7 +672,7 @@ namespace QuantConnect.Brokerages.Samco
 
                     // Generate submitted event
                     OnOrderEvent(new OrderEvent(order, DateTime.UtcNow, orderFee, "Samco Order Event") { Status = OrderStatus.UpdateSubmitted });
-                    Log.Trace($"Order submitted successfully - OrderId: {order.Id}");
+                    Log.Trace($"SamcoBrokerage.UpdateOrder(): Order submitted successfully - OrderId: {order.Id}");
 
                     submitted = true;
                     return;
@@ -880,9 +878,9 @@ namespace QuantConnect.Brokerages.Samco
                     // we start trying to reconnect during extended market hours so we are all set for normal hours
                     if (!IsConnected && IsExchangeOpen(extendedMarketHours: true))
                     {
-                        if (Interlocked.Increment(ref _heartBeatMonitor) > 5 || _sessionId == null)
+                        if (Interlocked.Increment(ref _waitCounter) > 2)
                         {
-                            Log.Error($"CheckConnection(): resetting connection...",
+                            Log.Error($"SamcoBrokerage.CheckConnection(): resetting connection...",
                                 overrideMessageFloodProtection: true);
 
                             try
@@ -899,13 +897,8 @@ namespace QuantConnect.Brokerages.Samco
                             Connect();
 
                             // clear
-                            Interlocked.Exchange(ref _heartBeatMonitor, 0);
+                            Interlocked.Exchange(ref _waitCounter, 0);
                         }
-                    }
-                    else
-                    {
-                        // our session Id expires each day
-                        _sessionId = null;
                     }
                 }
                 catch (Exception e)
