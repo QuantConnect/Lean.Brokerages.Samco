@@ -47,7 +47,6 @@ namespace QuantConnect.Brokerages.Samco
         private readonly CancellationTokenSource _ctsFillMonitor = new CancellationTokenSource();
         private readonly AutoResetEvent _fillMonitorResetEvent = new AutoResetEvent(false);
         private readonly Task _fillMonitorTask;
-        private readonly Task _checkConnectionTask;
         private readonly int _fillMonitorTimeout = Config.GetInt("samco.FillMonitorTimeout", 500);
         private readonly ConcurrentDictionary<int, decimal> _fills = new ConcurrentDictionary<int, decimal>();
         private readonly BrokerageConcurrentMessageHandler<WebSocketMessage> _messageHandler;
@@ -58,6 +57,7 @@ namespace QuantConnect.Brokerages.Samco
         private readonly string _samcoYob;
         private readonly Timer _reconnectTimer;
         private readonly MarketHoursDatabase _mhdb = MarketHoursDatabase.FromDataFolder();
+        private readonly object _connectionLock = new();
 
         // MIS/CNC/NRML
         private readonly string _samcoProductType;
@@ -74,7 +74,7 @@ namespace QuantConnect.Brokerages.Samco
         private readonly List<string> _unSubscribeInstrumentTokens = new List<string>();
 
         private DateTime _lastTradeTickTime;
-        private int _waitCounter;
+        private Task _checkConnectionTask;
 
         /// <summary>
         /// The websockets client instance
@@ -136,9 +136,6 @@ namespace QuantConnect.Brokerages.Samco
             _subscriptionManager = subscriptionManager;
             _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
 
-            // we start a task that will be in charge of expiring and refreshing our session id
-            _checkConnectionTask = Task.Factory.StartNew(CheckConnection, _ctsFillMonitor.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
             // A single connection to stream.stocknote.com is only valid for 24 hours;
             // expect to be disconnected at the 24 hour mark
             _reconnectTimer = new Timer
@@ -199,23 +196,32 @@ namespace QuantConnect.Brokerages.Samco
         /// </summary>
         public override void Connect()
         {
-            if (IsConnected)
-                return;
-
-            Log.Trace("SamcoBrokerage.Connect(): Connecting...");
-
-            _samcoAPI.Authorize(_samcoApiKey, _samcoApiSecret, _samcoYob);
-            WebSocket.Initialize("wss://stream.stocknote.com", _samcoAPI.SamcoToken);
-
-            var resetEvent = new ManualResetEvent(false);
-            EventHandler triggerEvent = (o, args) => resetEvent.Set();
-            WebSocket.Open += triggerEvent;
-            WebSocket.Connect();
-            if (!resetEvent.WaitOne(ConnectionTimeout))
+            lock (_connectionLock)
             {
-                throw new TimeoutException("Websockets connection timeout.");
+                if (IsConnected)
+                    return;
+
+                Log.Trace("SamcoBrokerage.Connect(): Connecting...");
+
+                _samcoAPI.Authorize(_samcoApiKey, _samcoApiSecret, _samcoYob);
+                WebSocket.Initialize("wss://stream.stocknote.com", _samcoAPI.SamcoToken);
+
+                var resetEvent = new ManualResetEvent(false);
+                EventHandler triggerEvent = (o, args) => resetEvent.Set();
+                WebSocket.Open += triggerEvent;
+                WebSocket.Connect();
+                if (!resetEvent.WaitOne(ConnectionTimeout))
+                {
+                    throw new TimeoutException("Websockets connection timeout.");
+                }
+                WebSocket.Open -= triggerEvent;
+
+                if (_checkConnectionTask == null)
+                {
+                    // we start a task that will be in charge of expiring and refreshing our session id
+                    _checkConnectionTask = Task.Factory.StartNew(CheckConnection, _ctsFillMonitor.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                }
             }
-            WebSocket.Open -= triggerEvent;
         }
 
         /// <summary>
@@ -878,27 +884,21 @@ namespace QuantConnect.Brokerages.Samco
                     // we start trying to reconnect during extended market hours so we are all set for normal hours
                     if (!IsConnected && IsExchangeOpen(extendedMarketHours: true))
                     {
-                        if (Interlocked.Increment(ref _waitCounter) > 2)
+                        Log.Error($"SamcoBrokerage.CheckConnection(): resetting connection...",
+                            overrideMessageFloodProtection: true);
+
+                        try
                         {
-                            Log.Error($"SamcoBrokerage.CheckConnection(): resetting connection...",
-                                overrideMessageFloodProtection: true);
-
-                            try
-                            {
-                                Disconnect();
-                            }
-                            catch
-                            {
-                                // don't let it stop us from reconnecting
-                            }
-                            Thread.Sleep(100);
-
-                            // create a new instance
-                            Connect();
-
-                            // clear
-                            Interlocked.Exchange(ref _waitCounter, 0);
+                            Disconnect();
                         }
+                        catch
+                        {
+                            // don't let it stop us from reconnecting
+                        }
+                        Thread.Sleep(100);
+
+                        // create a new instance
+                        Connect();
                     }
                 }
                 catch (Exception e)
