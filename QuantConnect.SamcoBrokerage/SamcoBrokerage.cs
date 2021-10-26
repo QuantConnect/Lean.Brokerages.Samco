@@ -31,7 +31,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Timer = System.Timers.Timer;
 
 namespace QuantConnect.Brokerages.Samco
 {
@@ -55,7 +54,6 @@ namespace QuantConnect.Brokerages.Samco
         private readonly string _samcoApiKey;
         private readonly string _samcoApiSecret;
         private readonly string _samcoYob;
-        private readonly Timer _reconnectTimer;
         private readonly MarketHoursDatabase _mhdb = MarketHoursDatabase.FromDataFolder();
         private readonly object _connectionLock = new();
 
@@ -135,23 +133,6 @@ namespace QuantConnect.Brokerages.Samco
 
             _subscriptionManager = subscriptionManager;
             _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
-
-            // A single connection to stream.stocknote.com is only valid for 24 hours;
-            // expect to be disconnected at the 24 hour mark
-            _reconnectTimer = new Timer
-            {
-                // 23.5 hours
-                Interval = 23.5 * 60 * 60 * 1000
-            };
-            _reconnectTimer.Elapsed += (s, e) =>
-            {
-                Log.Trace("SamcoBrokerage(): Daily websocket restart: disconnect");
-                Disconnect();
-
-                Log.Trace("SamcoBrokerage(): Daily websocket restart: connect");
-                Connect();
-            };
-            _reconnectTimer.Start();
             Log.Trace("SamcoBrokerage(): Start Samco Brokerage");
         }
 
@@ -248,7 +229,6 @@ namespace QuantConnect.Brokerages.Samco
             _checkConnectionTask.Wait(TimeSpan.FromSeconds(5));
             _ctsFillMonitor.Dispose();
             _fillMonitorResetEvent.Dispose();
-            _reconnectTimer.Dispose();
         }
 
         /// <summary>
