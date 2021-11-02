@@ -222,11 +222,14 @@ namespace QuantConnect.Brokerages.Samco
         /// </summary>
         public override void Dispose()
         {
-            _aggregator.Dispose();
-            _samcoAPI.Dispose();
             _ctsFillMonitor.Cancel();
             _fillMonitorTask.Wait(TimeSpan.FromSeconds(5));
-            _checkConnectionTask.Wait(TimeSpan.FromSeconds(5));
+            if (_checkConnectionTask != null)
+            {
+                _checkConnectionTask.Wait(TimeSpan.FromSeconds(5));
+            }
+            _aggregator.Dispose();
+            _samcoAPI.Dispose();
             _ctsFillMonitor.Dispose();
             _fillMonitorResetEvent.Dispose();
         }
