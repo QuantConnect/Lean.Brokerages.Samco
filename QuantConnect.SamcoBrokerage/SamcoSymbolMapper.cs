@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 
 namespace QuantConnect.Brokerages.Samco
 {
@@ -222,16 +221,6 @@ namespace QuantConnect.Brokerages.Samco
                 exchange = scrip.Exchange.ToUpperInvariant();
             }
             return exchange;
-        }
-
-        /// <summary>
-        /// Returns the security type for a Lean symbol
-        /// </summary>
-        /// <param name="leanSymbol">The Lean symbol</param>
-        /// <returns>The security type</returns>
-        public SecurityType GetLeanSecurityType(string leanSymbol)
-        {
-            return GetBrokerageSecurityType(ConvertLeanSymbolToSamcoSymbol(leanSymbol));
         }
 
         /// <summary>
