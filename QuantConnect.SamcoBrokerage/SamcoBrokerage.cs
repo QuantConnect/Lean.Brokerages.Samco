@@ -224,10 +224,7 @@ namespace QuantConnect.Brokerages.Samco
         {
             _ctsFillMonitor.Cancel();
             _fillMonitorTask.Wait(TimeSpan.FromSeconds(5));
-            if (_checkConnectionTask != null)
-            {
-                _checkConnectionTask.Wait(TimeSpan.FromSeconds(5));
-            }
+            _checkConnectionTask?.Wait(TimeSpan.FromSeconds(5));
             _aggregator.Dispose();
             _samcoAPI.Dispose();
             _ctsFillMonitor.Dispose();
@@ -965,6 +962,10 @@ namespace QuantConnect.Brokerages.Samco
         private void OnError(object sender, WebSocketError e)
         {
             Log.Error($"SamcoBrokerage.OnError(): Message: {e.Message} Exception: {e.Exception}");
+            if (e.Message == "The remote party closed the WebSocket connection without completing the close handshake.")
+            {
+                WebSocket.Close();
+            }
         }
 
         private void OnMessage(object sender, WebSocketMessage e)
