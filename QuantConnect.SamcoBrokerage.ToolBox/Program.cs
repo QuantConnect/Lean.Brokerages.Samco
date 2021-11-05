@@ -13,22 +13,15 @@
  * limitations under the License.
 */
 
-using NUnit.Framework;
+using QuantConnect.ToolBox.SamcoDataDownloader;
 
-namespace QuantConnect.TemplateBrokerage.Tests
+namespace QuantConnect.TemplateBrokerage.ToolBox
 {
-    [TestFixture, Ignore("Not implemented")]
-    public class TemplateBrokerageSymbolMapperTests
+    static class Program
     {
-        [Test]
-        public void ReturnsCorrectLeanSymbol()
+        static void Main(string[] args)
         {
-
-        }
-
-        [Test]
-        public void ReturnsCorrectBrokerageSymbol()
-        {
+            var downloader = new SamcoDataDownloaderProgram();
 
         }
     }
