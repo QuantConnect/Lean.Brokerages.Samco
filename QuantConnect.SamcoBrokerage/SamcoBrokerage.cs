@@ -864,7 +864,7 @@ namespace QuantConnect.Brokerages.Samco
                     // we start trying to reconnect during extended market hours so we are all set for normal hours
                     if (!IsConnected && IsExchangeOpen(extendedMarketHours: true))
                     {
-                        Log.Error($"SamcoBrokerage.CheckConnection(): resetting connection...",
+                        Log.Trace($"SamcoBrokerage.CheckConnection(): resetting connection...",
                             overrideMessageFloodProtection: true);
 
                         try
@@ -962,7 +962,7 @@ namespace QuantConnect.Brokerages.Samco
         private void OnError(object sender, WebSocketError e)
         {
             Log.Error($"SamcoBrokerage.OnError(): Message: {e.Message} Exception: {e.Exception}");
-            if (e.Message == "The remote party closed the WebSocket connection without completing the close handshake.")
+            if (!IsExchangeOpen(extendedMarketHours: true))
             {
                 WebSocket.Close();
             }
