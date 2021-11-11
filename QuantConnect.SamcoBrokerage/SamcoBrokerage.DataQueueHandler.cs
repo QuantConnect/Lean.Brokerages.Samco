@@ -47,7 +47,7 @@ namespace QuantConnect.Brokerages.Samco
             var symbol = dataConfig.Symbol;
             if (!CanSubscribe(symbol))
             {
-                return Enumerable.Empty<BaseData>().GetEnumerator();
+                return null;
             }
 
             var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
