@@ -106,14 +106,11 @@ namespace QuantConnect.Brokerages.Samco
         /// <param name="apiSecret">api secret</param>
         /// <param name="algorithm">the algorithm instance is required to retrieve account type</param>
         /// <param name="yob">year of birth</param>
-        public SamcoBrokerage(string tradingSegment, string productType, string apiKey, 
+        public SamcoBrokerage(string tradingSegment, string productType, string apiKey,
             string apiSecret, string yob, IAlgorithm algorithm, IDataAggregator aggregator)
             : base("Samco")
         {
-            if (!_isInitialized)
-            {
-                Initialize(tradingSegment, productType, apiKey, apiSecret, yob, algorithm, aggregator);
-            }
+            Initialize(tradingSegment, productType, apiKey, apiSecret, yob, algorithm, aggregator);
         }
 
         /// <summary>
@@ -654,43 +651,46 @@ namespace QuantConnect.Brokerages.Samco
             return submitted;
         }
 
-        private void Initialize(string tradingSegment, string productType, string apiKey, 
+        private void Initialize(string tradingSegment, string productType, string apiKey,
             string apiSecret, string yob, IAlgorithm algorithm, IDataAggregator aggregator)
         {
-            _tradingSegment = tradingSegment;
-            _samcoProductType = productType;
-            _algorithm = algorithm;
-            _securityProvider = algorithm?.Portfolio;
-            _aggregator = aggregator;
-            _samcoAPI = new SamcoBrokerageAPI();
-            _symbolMapper = new SamcoSymbolMapper();
-            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnMessageImpl);
-            _samcoApiKey = apiKey;
-            _samcoApiSecret = apiSecret;
-            _samcoYob = yob;
-
-            var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
-
-            WebSocket = new WebSocketClientWrapper();
-            WebSocket.Message += OnMessage;
-            WebSocket.Open += (sender, args) =>
+            if (!_isInitialized)
             {
-                Log.Trace($"SamcoBrokerage(): WebSocket.Open. Subscribing");
-                Subscribe(GetSubscribed());
-            };
-            WebSocket.Error += OnError;
+                _tradingSegment = tradingSegment;
+                _samcoProductType = productType;
+                _algorithm = algorithm;
+                _securityProvider = algorithm?.Portfolio;
+                _aggregator = aggregator;
+                _samcoAPI = new SamcoBrokerageAPI();
+                _symbolMapper = new SamcoSymbolMapper();
+                _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnMessageImpl);
+                _samcoApiKey = apiKey;
+                _samcoApiSecret = apiSecret;
+                _samcoYob = yob;
 
-            subscriptionManager.SubscribeImpl += (s, t) =>
-            {
-                Subscribe(s);
-                return true;
-            };
-            subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
+                var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
 
-            _subscriptionManager = subscriptionManager;
-            _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
-            Log.Trace("SamcoBrokerage(): Start Samco Brokerage");
-            _isInitialized = true;
+                WebSocket = new WebSocketClientWrapper();
+                WebSocket.Message += OnMessage;
+                WebSocket.Open += (sender, args) =>
+                {
+                    Log.Trace($"SamcoBrokerage(): WebSocket.Open. Subscribing");
+                    Subscribe(GetSubscribed());
+                };
+                WebSocket.Error += OnError;
+
+                subscriptionManager.SubscribeImpl += (s, t) =>
+                {
+                    Subscribe(s);
+                    return true;
+                };
+                subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
+
+                _subscriptionManager = subscriptionManager;
+                _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
+                Log.Trace("SamcoBrokerage(): Start Samco Brokerage");
+                _isInitialized = true;
+            }
         }
 
         private OrderStatus ConvertOrderStatus(OrderDetails orderDetails)
