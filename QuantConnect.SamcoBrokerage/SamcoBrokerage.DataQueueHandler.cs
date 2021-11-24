@@ -19,7 +19,6 @@ using QuantConnect.Packets;
 using QuantConnect.Util;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace QuantConnect.Brokerages.Samco
 {
