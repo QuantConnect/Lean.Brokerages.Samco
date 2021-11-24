@@ -654,43 +654,44 @@ namespace QuantConnect.Brokerages.Samco
         private void Initialize(string tradingSegment, string productType, string apiKey,
             string apiSecret, string yob, IAlgorithm algorithm, IDataAggregator aggregator)
         {
-            if (!_isInitialized)
+            if (_isInitialized)
             {
-                _tradingSegment = tradingSegment;
-                _samcoProductType = productType;
-                _algorithm = algorithm;
-                _securityProvider = algorithm?.Portfolio;
-                _aggregator = aggregator;
-                _samcoAPI = new SamcoBrokerageAPI();
-                _symbolMapper = new SamcoSymbolMapper();
-                _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnMessageImpl);
-                _samcoApiKey = apiKey;
-                _samcoApiSecret = apiSecret;
-                _samcoYob = yob;
-
-                var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
-
-                WebSocket = new WebSocketClientWrapper();
-                WebSocket.Message += OnMessage;
-                WebSocket.Open += (sender, args) =>
-                {
-                    Log.Trace($"SamcoBrokerage(): WebSocket.Open. Subscribing");
-                    Subscribe(GetSubscribed());
-                };
-                WebSocket.Error += OnError;
-
-                subscriptionManager.SubscribeImpl += (s, t) =>
-                {
-                    Subscribe(s);
-                    return true;
-                };
-                subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
-
-                _subscriptionManager = subscriptionManager;
-                _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
-                Log.Trace("SamcoBrokerage(): Start Samco Brokerage");
-                _isInitialized = true;
+                return;
             }
+            _isInitialized = true;
+            _tradingSegment = tradingSegment;
+            _samcoProductType = productType;
+            _algorithm = algorithm;
+            _securityProvider = algorithm?.Portfolio;
+            _aggregator = aggregator;
+            _samcoAPI = new SamcoBrokerageAPI();
+            _symbolMapper = new SamcoSymbolMapper();
+            _messageHandler = new BrokerageConcurrentMessageHandler<WebSocketMessage>(OnMessageImpl);
+            _samcoApiKey = apiKey;
+            _samcoApiSecret = apiSecret;
+            _samcoYob = yob;
+
+            var subscriptionManager = new EventBasedDataQueueHandlerSubscriptionManager();
+
+            WebSocket = new WebSocketClientWrapper();
+            WebSocket.Message += OnMessage;
+            WebSocket.Open += (sender, args) =>
+            {
+                Log.Trace($"SamcoBrokerage(): WebSocket.Open. Subscribing");
+                Subscribe(GetSubscribed());
+            };
+            WebSocket.Error += OnError;
+
+            subscriptionManager.SubscribeImpl += (s, t) =>
+            {
+                Subscribe(s);
+                return true;
+            };
+            subscriptionManager.UnsubscribeImpl += (s, t) => Unsubscribe(s);
+
+            _subscriptionManager = subscriptionManager;
+            _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
+            Log.Trace("SamcoBrokerage(): Start Samco Brokerage");
         }
 
         private OrderStatus ConvertOrderStatus(OrderDetails orderDetails)
