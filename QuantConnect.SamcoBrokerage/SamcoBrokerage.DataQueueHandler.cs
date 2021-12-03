@@ -13,11 +13,12 @@
  * limitations under the License.
 */
 
+using QuantConnect.Configuration;
 using QuantConnect.Data;
 using QuantConnect.Packets;
+using QuantConnect.Util;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace QuantConnect.Brokerages.Samco
 {
@@ -34,6 +35,20 @@ namespace QuantConnect.Brokerages.Samco
         /// <param name="job">Job we're subscribing for</param>
         public void SetJob(LiveNodePacket job)
         {
+            Initialize(
+                job.BrokerageData["samco-trading-segment"],
+                job.BrokerageData["samco-product-type"],
+                job.BrokerageData["samco-client-id"],
+                job.BrokerageData["samco-client-password"],
+                job.BrokerageData["samco-year-of-birth"],
+                null,
+                Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"))
+            );
+
+            if (!IsConnected)
+            {
+                Connect();
+            }
         }
 
         /// <summary>
@@ -47,7 +62,7 @@ namespace QuantConnect.Brokerages.Samco
             var symbol = dataConfig.Symbol;
             if (!CanSubscribe(symbol))
             {
-                return Enumerable.Empty<BaseData>().GetEnumerator();
+                return null;
             }
 
             var enumerator = _aggregator.Add(dataConfig, newDataAvailableHandler);
