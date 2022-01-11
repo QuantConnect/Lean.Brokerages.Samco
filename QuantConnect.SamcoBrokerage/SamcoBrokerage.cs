@@ -574,7 +574,15 @@ namespace QuantConnect.Brokerages.Samco
             {
                 try
                 {
-                    var scrip = _symbolMapper.SamcoSymbols.Where(x => x.Name.ToUpperInvariant() == symbol.ID.Symbol).First();
+                    ScripMaster scrip = new();
+                    if (symbol.SecurityType != SecurityType.Equity)
+                    {
+                        scrip = _symbolMapper.SamcoSymbols.Where(x => x.TradingSymbol.ToUpperInvariant() == symbol.ID.Symbol).First();
+                    }
+                    else
+                    {
+                        scrip = _symbolMapper.SamcoSymbols.Where(x => x.Name.ToUpperInvariant() == symbol.ID.Symbol).First();
+                    }
                     var listingId = scrip.SymbolCode;
                     if (!_subscribeInstrumentTokens.Contains(listingId))
                     {
