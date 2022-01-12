@@ -573,22 +573,17 @@ namespace QuantConnect.Brokerages.Samco
             {
                 try
                 {
-                    ScripMaster scrip = new();
-                    if (symbol.SecurityType != SecurityType.Equity)
+                    var scripList = _symbolMapper.GetSamcoTokenList(symbol);
+                    foreach (var scrip in scripList)
                     {
-                        scrip = _symbolMapper.SamcoSymbols.Where(x => x.TradingSymbol.ToUpperInvariant() == symbol.ID.Symbol).First();
-                    }
-                    else
-                    {
-                        scrip = _symbolMapper.SamcoSymbols.Where(x => x.Name.ToUpperInvariant() == symbol.ID.Symbol).First();
-                    }
-                    var listingId = scrip.SymbolCode;
-                    if (!_subscribeInstrumentTokens.Contains(listingId))
-                    {
-                        sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
-                        _subscribeInstrumentTokens.Add(listingId);
-                        _unSubscribeInstrumentTokens.Remove(listingId);
-                        _subscriptionsById[listingId] = symbol;
+                        var listingId = scrip.SymbolCode;
+                        if (!_subscribeInstrumentTokens.Contains(listingId))
+                        {
+                            sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
+                            _subscribeInstrumentTokens.Add(listingId);
+                            _unSubscribeInstrumentTokens.Remove(listingId);
+                            _subscriptionsById[listingId] = symbol;
+                        }
                     }
                 }
                 catch (Exception exception)
@@ -1076,15 +1071,18 @@ namespace QuantConnect.Brokerages.Samco
                 {
                     try
                     {
-                        var scrip = _symbolMapper.SamcoSymbols.Where(x => x.Name.ToUpperInvariant() == symbol.ID.Symbol).First();
-                        var listingId = scrip.SymbolCode;
-                        if (!_unSubscribeInstrumentTokens.Contains(listingId))
+                        var scripList = _symbolMapper.GetSamcoTokenList(symbol);
+                        foreach (var scrip in scripList)
                         {
-                            sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
-                            _unSubscribeInstrumentTokens.Add(listingId);
-                            _subscribeInstrumentTokens.Remove(listingId);
-                            Symbol unSubscribeSymbol;
-                            _subscriptionsById.TryRemove(listingId, out unSubscribeSymbol);
+                            var listingId = scrip.SymbolCode;
+                            if (!_unSubscribeInstrumentTokens.Contains(listingId))
+                            {
+                                sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
+                                _unSubscribeInstrumentTokens.Add(listingId);
+                                _subscribeInstrumentTokens.Remove(listingId);
+                                Symbol unSubscribeSymbol;
+                                _subscriptionsById.TryRemove(listingId, out unSubscribeSymbol);
+                            }
                         }
                     }
                     catch (Exception exception)

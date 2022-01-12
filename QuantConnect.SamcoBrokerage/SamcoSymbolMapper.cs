@@ -169,6 +169,36 @@ namespace QuantConnect.Brokerages.Samco
         }
 
         /// <summary>
+        /// Fetch all samco symbols for a given LEAN symbol
+        /// </summary>
+        /// <param name="leanSymbol">LEAN symbol</param>
+        /// <returns>A list of Samco ScripMaster</returns>
+        public List<ScripMaster> GetSamcoTokenList(Symbol leanSymbol)
+        {
+            List<ScripMaster> tokenList = new();
+            if (leanSymbol.SecurityType == SecurityType.Equity)
+            {
+                // Modify for NSE Equities
+                var nseTicker = leanSymbol.ID.Symbol + "-EQ";
+                var nseScrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).FirstOrDefault();
+                if (nseScrip != null)
+                {
+                    tokenList.Add(nseScrip);
+                } 
+            }
+            var scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == leanSymbol.ID.Symbol).FirstOrDefault();
+            if (scrip != null)
+            {
+                tokenList.Add(scrip);
+            }
+            if (tokenList.IsNullOrEmpty())
+            {
+                throw new Exception($"SamcoSymbolMapper.GetSamcoTokenList(): symbol not found for given ticker {leanSymbol.ID.Symbol}");
+            }
+            return tokenList;
+        }
+
+        /// <summary>
         /// Returns the security type for an Samco symbol
         /// </summary>
         /// <param name="brokerageSymbol">The Samco symbol</param>
