@@ -566,8 +566,7 @@ namespace QuantConnect.Brokerages.Samco
                 }
                 catch (Exception exception)
                 {
-                    Log.Error(exception);
-                    throw;
+                    throw new Exception($"SamcoBrokerage.Subscribe(): Message: {exception.Message} Exception: {exception.InnerException}");
                 }
             }
             foreach (var symbol in symbols)
@@ -594,8 +593,7 @@ namespace QuantConnect.Brokerages.Samco
                 }
                 catch (Exception exception)
                 {
-                    Log.Error(exception);
-                    throw;
+                    throw new Exception($"SamcoBrokerage.Subscribe(): Message: {exception.Message} Exception: {exception.InnerException}");
                 }
             }
             var request = JsonConvert.SerializeObject(sub);
@@ -793,10 +791,9 @@ namespace QuantConnect.Brokerages.Samco
 
                 OnOrderEvent(orderEvent);
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.Error(e);
-                throw;
+                throw new Exception($"SamcoBrokerage.EmitFillOrder(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -817,9 +814,9 @@ namespace QuantConnect.Brokerages.Samco
                     _aggregator.Update(tick);
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                throw ex;
+                throw new Exception($"SamcoBrokerage.EmitOpenInterestTick(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -845,9 +842,9 @@ namespace QuantConnect.Brokerages.Samco
                     _aggregator.Update(tick);
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                throw ex;
+                throw new Exception($"SamcoBrokerage.EmitQuoteTick(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -873,10 +870,9 @@ namespace QuantConnect.Brokerages.Samco
                     _aggregator.Update(tick);
                 }
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.Error(e);
-                throw;
+                throw new Exception($"SamcoBrokerage.EmitTradeTick(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -1036,7 +1032,7 @@ namespace QuantConnect.Brokerages.Samco
             catch (Exception exception)
             {
                 OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1, $"Parsing wss message failed. Data: {e.Message} Exception: {exception}"));
-                throw;
+                throw new Exception($"SamcoBrokerage.OnMessageImpl(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -1093,8 +1089,7 @@ namespace QuantConnect.Brokerages.Samco
                     }
                     catch (Exception exception)
                     {
-                        Log.Error(exception);
-                        throw;
+                        throw new Exception($"SamcoBrokerage.Unsubscribe(): Message: {exception.Message} Exception: {exception.InnerException}");
                     }
                 }
                 var request = JsonConvert.SerializeObject(sub);
