@@ -792,7 +792,7 @@ namespace QuantConnect.Brokerages.Samco
             }
         }
 
-        private void EmitOpenInterestTick(Symbol symbol, long openInterest)
+        private void EmitOpenInterestTick(Symbol symbol, string exchange, long openInterest)
         {
             try
             {
@@ -800,7 +800,7 @@ namespace QuantConnect.Brokerages.Samco
                 {
                     TickType = TickType.OpenInterest,
                     Value = openInterest,
-                    Exchange = symbol.ID.Market,
+                    Exchange = exchange,
                     Symbol = symbol
                 };
 
@@ -815,7 +815,7 @@ namespace QuantConnect.Brokerages.Samco
             }
         }
 
-        private void EmitQuoteTick(Symbol symbol, decimal avgPrice, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)
+        private void EmitQuoteTick(Symbol symbol, string exchange, decimal avgPrice, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)
         {
             try
             {
@@ -826,7 +826,7 @@ namespace QuantConnect.Brokerages.Samco
                     Value = avgPrice,
                     Symbol = symbol,
                     Time = DateTime.UtcNow,
-                    Exchange = symbol.ID.Market,
+                    Exchange = exchange,
                     TickType = TickType.Quote,
                     AskSize = askSize,
                     BidSize = bidSize
@@ -843,7 +843,7 @@ namespace QuantConnect.Brokerages.Samco
             }
         }
 
-        private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal amount)
+        private void EmitTradeTick(Symbol symbol, string exchange, DateTime time, decimal price, decimal amount)
         {
             try
             {
@@ -855,7 +855,7 @@ namespace QuantConnect.Brokerages.Samco
                         Time = time,
                         //Time = DateTime.UtcNow,
                         Symbol = symbol,
-                        Exchange = symbol.ID.Market,
+                        Exchange = exchange,
                         TickType = TickType.Trade,
                         Quantity = amount,
                         DataType = MarketDataType.Tick,
@@ -1004,18 +1004,20 @@ namespace QuantConnect.Brokerages.Samco
                     if (raw.response.streaming_type.ToLowerInvariant() == "quote")
                     {
                         var upd = raw.response.data;
-                        var sym = _subscriptionsById[raw.response.data.sym];
+                        var listingid = raw.response.data.sym;
+                        var exchange = _symbolMapper.GetExchangeFromListingID(listingid);
+                        var sym = _subscriptionsById[listingid];
 
-                        EmitQuoteTick(sym, upd.avgPr, upd.bPr, upd.bSz, upd.aPr, upd.aSz);
+                        EmitQuoteTick(sym, exchange, upd.avgPr, upd.bPr, upd.bSz, upd.aPr, upd.aSz);
 
                         if (_lastTradeTickTime != upd.lTrdT)
                         {
-                            EmitTradeTick(sym, upd.lTrdT, upd.ltp, upd.ltq);
+                            EmitTradeTick(sym, exchange, upd.lTrdT, upd.ltp, upd.ltq);
                             _lastTradeTickTime = upd.lTrdT;
                         }
                         if (upd.oI != "")
                         {
-                            EmitOpenInterestTick(sym, Convert.ToInt64(upd.oI, CultureInfo.InvariantCulture));
+                            EmitOpenInterestTick(sym, exchange, Convert.ToInt64(upd.oI, CultureInfo.InvariantCulture));
                         }
                     }
                     else

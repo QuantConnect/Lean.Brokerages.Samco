@@ -303,6 +303,21 @@ namespace QuantConnect.Brokerages.Samco
         }
 
         /// <summary>
+        /// Fetches the trading segment inside Market.India, E.g: NSE, BSE for the given token
+        /// </summary>
+        /// <param name="listingid">The Samco Instrument Token</param>
+        /// <returns>An exchange value for the given token</returns>
+        public string GetExchangeFromListingID(string listingid)
+        {
+            var scrip = _samcoTradableSymbolList.Where(x => x.SymbolCode == listingid).FirstOrDefault();
+            if (scrip == null)
+            {
+                throw new Exception($"SamcoSymbolMapper.GetExchangeFromListingID(): scrip not found for given listingID {listingid}");
+            }
+            return scrip.Exchange;
+        }
+
+        /// <summary>
         /// Converts a Lean symbol string to an Samco symbol
         /// </summary>
         private static string ConvertLeanSymbolToSamcoSymbol(string leanSymbol)
