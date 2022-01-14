@@ -33,8 +33,8 @@ namespace QuantConnect.Brokerages.Samco
         /// <summary>
         /// The list of known Samco symbols.
         /// </summary>
-        private readonly List<ScripMaster> _samcoTradableSymbolList = new List<ScripMaster>();
-
+        private readonly List<ScripMaster> _samcoTradableSymbolList = new();
+        private Dictionary<string, string> _listingidExchangeMapping = new();
         private readonly string _getSymbolsEndpoint = "https://developers.stocknote.com/doc/ScripMaster.csv";
 
         /// <summary>
@@ -56,7 +56,11 @@ namespace QuantConnect.Brokerages.Samco
             };
             var csv = new CsvReader(sr, configuration);
             var scrips = csv.GetRecords<ScripMaster>();
-            _samcoTradableSymbolList = scrips.ToList();
+            foreach (var scrip in scrips)
+            {
+                _samcoTradableSymbolList.Add(scrip);
+                _listingidExchangeMapping[scrip.SymbolCode] = scrip.Exchange;
+            }
         }
 
         /// <summary>
@@ -309,12 +313,11 @@ namespace QuantConnect.Brokerages.Samco
         /// <returns>An exchange value for the given token</returns>
         public string GetExchangeFromListingID(string listingid)
         {
-            var scrip = _samcoTradableSymbolList.Where(x => x.SymbolCode == listingid).FirstOrDefault();
-            if (scrip == null)
+            if (!_listingidExchangeMapping.TryGetValue(listingid, out string exchange))
             {
                 throw new Exception($"SamcoSymbolMapper.GetExchangeFromListingID(): scrip not found for given listingID {listingid}");
             }
-            return scrip.Exchange;
+            return exchange;
         }
 
         /// <summary>
