@@ -241,24 +241,40 @@ namespace QuantConnect.Brokerages.Samco
         }
 
         /// <summary>
-        /// Gets exchange of a given Lean Symbol
+        /// Fetches the trading segment inside Market.India, E.g: NSE, BSE for the given token
         /// </summary>
-        /// <param name="symbol">A Lean symbol instance</param>
-        /// <returns>exchnage</returns>
-        public string GetDefaultExchange(Symbol symbol)
+        /// <param name="symbol">LEAN symbol</param>
+        /// <returns>An exchange value for the given token</returns>
+        public string GetExchange(Symbol symbol)
         {
             if (symbol == null)
             {
                 throw new ArgumentNullException(nameof(symbol));
             }
-            var exchange = "NSE";
             var brokerageSymbol = ConvertLeanSymbolToSamcoSymbol(symbol.Value);
             var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
             if (scrip == null)
             {
                 throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
             }
-            exchange = scrip.Exchange.ToUpperInvariant();
+            return scrip.Exchange;
+        }
+
+        /// <summary>
+        /// Fetches the trading segment inside Market.India, E.g: NSE, BSE for the given token
+        /// </summary>
+        /// <param name="listingid">The Samco Instrument Token</param>
+        /// <returns>An exchange value for the given token</returns>
+        public string GetExchange(string listingid)
+        {
+            if (listingid.IsNullOrEmpty())
+            {
+                throw new ArgumentNullException(listingid);
+            }
+            if (!_listingidExchangeMapping.TryGetValue(listingid, out string exchange))
+            {
+                throw new Exception($"SamcoSymbolMapper.GetExchangeFromListingID(): scrip not found for given listingID {listingid}");
+            }
             return exchange;
         }
 
@@ -308,20 +324,6 @@ namespace QuantConnect.Brokerages.Samco
         {
             var market = Market.India;
             return GetLeanSymbol(brokerageSymbol, securityType, market, expirationDate, strike, optionRight);
-        }
-
-        /// <summary>
-        /// Fetches the trading segment inside Market.India, E.g: NSE, BSE for the given token
-        /// </summary>
-        /// <param name="listingid">The Samco Instrument Token</param>
-        /// <returns>An exchange value for the given token</returns>
-        public string GetExchangeFromListingID(string listingid)
-        {
-            if (!_listingidExchangeMapping.TryGetValue(listingid, out string exchange))
-            {
-                throw new Exception($"SamcoSymbolMapper.GetExchangeFromListingID(): scrip not found for given listingID {listingid}");
-            }
-            return exchange;
         }
 
         /// <summary>

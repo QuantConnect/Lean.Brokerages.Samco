@@ -69,7 +69,7 @@ namespace QuantConnect.ToolBox.SamcoDataDownloader
                 {
                     // Download data
                     var pairObject = Symbol.Create(pair, castSecurityType, market);
-                    var exchange = symbolMapper.GetDefaultExchange(pairObject);
+                    var exchange = symbolMapper.GetExchange(pairObject);
                     var isIndex = pairObject.SecurityType == SecurityType.Index;
 
                     // Write data

@@ -371,7 +371,7 @@ namespace QuantConnect.Brokerages.Samco
 
             var leanSymbol = request.Symbol;
             var securityExchange = _securityProvider.GetSecurity(leanSymbol).Exchange;
-            var exchange = _symbolMapper.GetDefaultExchange(leanSymbol);
+            var exchange = _symbolMapper.GetExchange(leanSymbol);
             var isIndex = leanSymbol.SecurityType == SecurityType.Index;
 
             var history = _samcoAPI.GetIntradayCandles(request.Symbol, exchange, request.StartTimeLocal, request.EndTimeLocal, request.Resolution, isIndex);
@@ -456,7 +456,7 @@ namespace QuantConnect.Brokerages.Samco
         /// <returns>Quote Response</returns>
         public QuoteResponse GetQuote(Symbol symbol)
         {
-            var exchange = _symbolMapper.GetDefaultExchange(symbol);
+            var exchange = _symbolMapper.GetExchange(symbol);
             return _samcoAPI.GetQuote(symbol.ID.Symbol, exchange);
         }
 
@@ -1005,7 +1005,7 @@ namespace QuantConnect.Brokerages.Samco
                     {
                         var upd = raw.response.data;
                         var listingid = raw.response.data.sym;
-                        var exchange = _symbolMapper.GetExchangeFromListingID(listingid);
+                        var exchange = _symbolMapper.GetExchange(listingid);
                         var sym = _subscriptionsById[listingid];
 
                         EmitQuoteTick(sym, exchange, upd.avgPr, upd.bPr, upd.bSz, upd.aPr, upd.aSz);
