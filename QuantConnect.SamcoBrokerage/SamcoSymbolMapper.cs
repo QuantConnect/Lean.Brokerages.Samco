@@ -184,13 +184,13 @@ namespace QuantConnect.Brokerages.Samco
             {
                 // Modify for NSE Equities
                 var nseTicker = leanSymbol.ID.Symbol + "-EQ";
-                var nseScrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).FirstOrDefault();
+                var nseScrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).SingleOrDefault();
                 if (nseScrip != null)
                 {
                     tokenList.Add(nseScrip);
                 } 
             }
-            var scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == leanSymbol.ID.Symbol).FirstOrDefault();
+            var scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == leanSymbol.ID.Symbol).SingleOrDefault();
             if (scrip != null)
             {
                 tokenList.Add(scrip);
@@ -216,7 +216,11 @@ namespace QuantConnect.Brokerages.Samco
             if (string.IsNullOrWhiteSpace(brokerageSymbol))
                 throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
 
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).FirstOrDefault();
+            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
+            if (scrip == null)
+            {
+                throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
+            }
             var symbol = CreateLeanSymbol(scrip);
             return symbol.SecurityType;
         }
@@ -249,11 +253,12 @@ namespace QuantConnect.Brokerages.Samco
             }
             var exchange = "NSE";
             var brokerageSymbol = ConvertLeanSymbolToSamcoSymbol(symbol.Value);
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).FirstOrDefault();
-            if (scrip != null)
+            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
+            if (scrip == null)
             {
-                exchange = scrip.Exchange.ToUpperInvariant();
+                throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
             }
+            exchange = scrip.Exchange.ToUpperInvariant();
             return exchange;
         }
 
@@ -282,8 +287,7 @@ namespace QuantConnect.Brokerages.Samco
 
             if (!Market.Encode(market.ToLowerInvariant()).HasValue)
                 throw new ArgumentException($"Invalid market: {market}");
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).First();
-
+            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
             if (scrip == null)
             {
                 throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
