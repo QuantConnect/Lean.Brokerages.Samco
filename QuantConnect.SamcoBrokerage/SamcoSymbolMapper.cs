@@ -253,6 +253,13 @@ namespace QuantConnect.Brokerages.Samco
             }
             var brokerageSymbol = ConvertLeanSymbolToSamcoSymbol(symbol.Value);
             var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
+            if (scrip != null)
+            {
+                return scrip.Exchange;
+            }
+            // Modify for NSE Equities
+            var nseTicker = brokerageSymbol + "-EQ";
+            scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).SingleOrDefault();
             if (scrip == null)
             {
                 throw new ArgumentException($"SamcoSymbolMapper.GetExchange(): Invalid Samco symbol {brokerageSymbol}");
