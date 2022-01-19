@@ -371,7 +371,7 @@ namespace QuantConnect.Brokerages.Samco
 
             var leanSymbol = request.Symbol;
             var securityExchange = _securityProvider.GetSecurity(leanSymbol).Exchange;
-            var exchange = _symbolMapper.GetDefaultExchange(leanSymbol);
+            var exchange = _symbolMapper.GetExchange(leanSymbol);
             var isIndex = leanSymbol.SecurityType == SecurityType.Index;
 
             var history = _samcoAPI.GetIntradayCandles(request.Symbol, exchange, request.StartTimeLocal, request.EndTimeLocal, request.Resolution, isIndex);
@@ -456,7 +456,7 @@ namespace QuantConnect.Brokerages.Samco
         /// <returns>Quote Response</returns>
         public QuoteResponse GetQuote(Symbol symbol)
         {
-            var exchange = _symbolMapper.GetDefaultExchange(symbol);
+            var exchange = _symbolMapper.GetExchange(symbol);
             return _samcoAPI.GetQuote(symbol.ID.Symbol, exchange);
         }
 
@@ -566,28 +566,29 @@ namespace QuantConnect.Brokerages.Samco
                 }
                 catch (Exception exception)
                 {
-                    Log.Error(exception);
-                    throw;
+                    throw new Exception($"SamcoBrokerage.Subscribe(): Message: {exception.Message} Exception: {exception.InnerException}");
                 }
             }
             foreach (var symbol in symbols)
             {
                 try
                 {
-                    var scrip = _symbolMapper.SamcoSymbols.Where(x => x.Name.ToUpperInvariant() == symbol.ID.Symbol).First();
-                    var listingId = scrip.SymbolCode;
-                    if (!_subscribeInstrumentTokens.Contains(listingId))
+                    var scripList = _symbolMapper.GetSamcoTokenList(symbol);
+                    foreach (var scrip in scripList)
                     {
-                        sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
-                        _subscribeInstrumentTokens.Add(listingId);
-                        _unSubscribeInstrumentTokens.Remove(listingId);
-                        _subscriptionsById[listingId] = symbol;
+                        var listingId = scrip.SymbolCode;
+                        if (!_subscribeInstrumentTokens.Contains(listingId))
+                        {
+                            sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
+                            _subscribeInstrumentTokens.Add(listingId);
+                            _unSubscribeInstrumentTokens.Remove(listingId);
+                            _subscriptionsById[listingId] = symbol;
+                        }
                     }
                 }
                 catch (Exception exception)
                 {
-                    Log.Error(exception);
-                    throw;
+                    throw new Exception($"SamcoBrokerage.Subscribe(): Message: {exception.Message} Exception: {exception.InnerException}");
                 }
             }
             var request = JsonConvert.SerializeObject(sub);
@@ -785,14 +786,13 @@ namespace QuantConnect.Brokerages.Samco
 
                 OnOrderEvent(orderEvent);
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.Error(e);
-                throw;
+                throw new Exception($"SamcoBrokerage.EmitFillOrder(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
-        private void EmitOpenInterestTick(Symbol symbol, long openInterest)
+        private void EmitOpenInterestTick(Symbol symbol, string exchange, long openInterest)
         {
             try
             {
@@ -800,7 +800,7 @@ namespace QuantConnect.Brokerages.Samco
                 {
                     TickType = TickType.OpenInterest,
                     Value = openInterest,
-                    Exchange = symbol.ID.Market,
+                    Exchange = exchange,
                     Symbol = symbol
                 };
 
@@ -809,13 +809,13 @@ namespace QuantConnect.Brokerages.Samco
                     _aggregator.Update(tick);
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                throw ex;
+                throw new Exception($"SamcoBrokerage.EmitOpenInterestTick(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
-        private void EmitQuoteTick(Symbol symbol, decimal avgPrice, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)
+        private void EmitQuoteTick(Symbol symbol, string exchange, decimal avgPrice, decimal bidPrice, decimal bidSize, decimal askPrice, decimal askSize)
         {
             try
             {
@@ -826,7 +826,7 @@ namespace QuantConnect.Brokerages.Samco
                     Value = avgPrice,
                     Symbol = symbol,
                     Time = DateTime.UtcNow,
-                    Exchange = symbol.ID.Market,
+                    Exchange = exchange,
                     TickType = TickType.Quote,
                     AskSize = askSize,
                     BidSize = bidSize
@@ -837,13 +837,13 @@ namespace QuantConnect.Brokerages.Samco
                     _aggregator.Update(tick);
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                throw ex;
+                throw new Exception($"SamcoBrokerage.EmitQuoteTick(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
-        private void EmitTradeTick(Symbol symbol, DateTime time, decimal price, decimal amount)
+        private void EmitTradeTick(Symbol symbol, string exchange, DateTime time, decimal price, decimal amount)
         {
             try
             {
@@ -855,7 +855,7 @@ namespace QuantConnect.Brokerages.Samco
                         Time = time,
                         //Time = DateTime.UtcNow,
                         Symbol = symbol,
-                        Exchange = symbol.ID.Market,
+                        Exchange = exchange,
                         TickType = TickType.Trade,
                         Quantity = amount,
                         DataType = MarketDataType.Tick,
@@ -865,10 +865,9 @@ namespace QuantConnect.Brokerages.Samco
                     _aggregator.Update(tick);
                 }
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.Error(e);
-                throw;
+                throw new Exception($"SamcoBrokerage.EmitTradeTick(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -1005,18 +1004,20 @@ namespace QuantConnect.Brokerages.Samco
                     if (raw.response.streaming_type.ToLowerInvariant() == "quote")
                     {
                         var upd = raw.response.data;
-                        var sym = _subscriptionsById[raw.response.data.sym];
+                        var listingid = raw.response.data.sym;
+                        var exchange = _symbolMapper.GetExchange(listingid);
+                        var sym = _subscriptionsById[listingid];
 
-                        EmitQuoteTick(sym, upd.avgPr, upd.bPr, upd.bSz, upd.aPr, upd.aSz);
+                        EmitQuoteTick(sym, exchange, upd.avgPr, upd.bPr, upd.bSz, upd.aPr, upd.aSz);
 
                         if (_lastTradeTickTime != upd.lTrdT)
                         {
-                            EmitTradeTick(sym, upd.lTrdT, upd.ltp, upd.ltq);
+                            EmitTradeTick(sym, exchange, upd.lTrdT, upd.ltp, upd.ltq);
                             _lastTradeTickTime = upd.lTrdT;
                         }
                         if (upd.oI != "")
                         {
-                            EmitOpenInterestTick(sym, Convert.ToInt64(upd.oI, CultureInfo.InvariantCulture));
+                            EmitOpenInterestTick(sym, exchange, Convert.ToInt64(upd.oI, CultureInfo.InvariantCulture));
                         }
                     }
                     else
@@ -1028,7 +1029,7 @@ namespace QuantConnect.Brokerages.Samco
             catch (Exception exception)
             {
                 OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Error, -1, $"Parsing wss message failed. Data: {e.Message} Exception: {exception}"));
-                throw;
+                throw new Exception($"SamcoBrokerage.OnMessageImpl(): Message: {exception.Message} Exception: {exception.InnerException}");
             }
         }
 
@@ -1072,21 +1073,23 @@ namespace QuantConnect.Brokerages.Samco
                 {
                     try
                     {
-                        var scrip = _symbolMapper.SamcoSymbols.Where(x => x.Name.ToUpperInvariant() == symbol.ID.Symbol).First();
-                        var listingId = scrip.SymbolCode;
-                        if (!_unSubscribeInstrumentTokens.Contains(listingId))
+                        var scripList = _symbolMapper.GetSamcoTokenList(symbol);
+                        foreach (var scrip in scripList)
                         {
-                            sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
-                            _unSubscribeInstrumentTokens.Add(listingId);
-                            _subscribeInstrumentTokens.Remove(listingId);
-                            Symbol unSubscribeSymbol;
-                            _subscriptionsById.TryRemove(listingId, out unSubscribeSymbol);
+                            var listingId = scrip.SymbolCode;
+                            if (!_unSubscribeInstrumentTokens.Contains(listingId))
+                            {
+                                sub.request.data.symbols.Add(new Subscription.Symbol { symbol = listingId });
+                                _unSubscribeInstrumentTokens.Add(listingId);
+                                _subscribeInstrumentTokens.Remove(listingId);
+                                Symbol unSubscribeSymbol;
+                                _subscriptionsById.TryRemove(listingId, out unSubscribeSymbol);
+                            }
                         }
                     }
                     catch (Exception exception)
                     {
-                        Log.Error(exception);
-                        throw;
+                        throw new Exception($"SamcoBrokerage.Unsubscribe(): Message: {exception.Message} Exception: {exception.InnerException}");
                     }
                 }
                 var request = JsonConvert.SerializeObject(sub);

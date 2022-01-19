@@ -33,8 +33,8 @@ namespace QuantConnect.Brokerages.Samco
         /// <summary>
         /// The list of known Samco symbols.
         /// </summary>
-        private readonly List<ScripMaster> _samcoTradableSymbolList = new List<ScripMaster>();
-
+        private readonly List<ScripMaster> _samcoTradableSymbolList = new();
+        private Dictionary<string, string> _listingidExchangeMapping = new();
         private readonly string _getSymbolsEndpoint = "https://developers.stocknote.com/doc/ScripMaster.csv";
 
         /// <summary>
@@ -56,7 +56,11 @@ namespace QuantConnect.Brokerages.Samco
             };
             var csv = new CsvReader(sr, configuration);
             var scrips = csv.GetRecords<ScripMaster>();
-            _samcoTradableSymbolList = scrips.ToList();
+            foreach (var scrip in scrips)
+            {
+                _samcoTradableSymbolList.Add(scrip);
+                _listingidExchangeMapping[scrip.SymbolCode] = scrip.Exchange;
+            }
         }
 
         /// <summary>
@@ -169,6 +173,36 @@ namespace QuantConnect.Brokerages.Samco
         }
 
         /// <summary>
+        /// Fetch all samco symbols for a given LEAN symbol
+        /// </summary>
+        /// <param name="leanSymbol">LEAN symbol</param>
+        /// <returns>A list of Samco ScripMaster</returns>
+        public List<ScripMaster> GetSamcoTokenList(Symbol leanSymbol)
+        {
+            List<ScripMaster> tokenList = new();
+            if (leanSymbol.SecurityType == SecurityType.Equity)
+            {
+                // Modify for NSE Equities
+                var nseTicker = leanSymbol.ID.Symbol + "-EQ";
+                var nseScrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).SingleOrDefault();
+                if (nseScrip != null)
+                {
+                    tokenList.Add(nseScrip);
+                } 
+            }
+            var scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == leanSymbol.ID.Symbol).SingleOrDefault();
+            if (scrip != null)
+            {
+                tokenList.Add(scrip);
+            }
+            if (tokenList.IsNullOrEmpty())
+            {
+                throw new Exception($"SamcoSymbolMapper.GetSamcoTokenList(): symbol not found for given ticker {leanSymbol.ID.Symbol}");
+            }
+            return tokenList;
+        }
+
+        /// <summary>
         /// Returns the security type for an Samco symbol
         /// </summary>
         /// <param name="brokerageSymbol">The Samco symbol</param>
@@ -180,9 +214,13 @@ namespace QuantConnect.Brokerages.Samco
                 brokerageSymbol = brokerageSymbol.Split('-')[0];
             }
             if (string.IsNullOrWhiteSpace(brokerageSymbol))
-                throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
+                throw new ArgumentException($"SamcoSymbolMapper.GetBrokerageSecurityType(): Invalid Samco symbol {brokerageSymbol}");
 
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).FirstOrDefault();
+            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
+            if (scrip == null)
+            {
+                throw new ArgumentException($"SamcoSymbolMapper.GetBrokerageSecurityType(): Invalid Samco symbol {brokerageSymbol}");
+            }
             var symbol = CreateLeanSymbol(scrip);
             return symbol.SecurityType;
         }
@@ -195,7 +233,7 @@ namespace QuantConnect.Brokerages.Samco
         public string GetBrokerageSymbol(Symbol symbol)
         {
             if (symbol == null || string.IsNullOrWhiteSpace(symbol.Value))
-                throw new ArgumentException("Invalid symbol: " + (symbol == null ? "null" : symbol.ToString()));
+                throw new ArgumentException("SamcoSymbolMapper.GetBrokerageSymbol(): Invalid symbol " + (symbol == null ? "null" : symbol.ToString()));
 
             var brokerageSymbol = ConvertLeanSymbolToSamcoSymbol(symbol.Value);
 
@@ -203,22 +241,46 @@ namespace QuantConnect.Brokerages.Samco
         }
 
         /// <summary>
-        /// Gets exchange of a given Lean Symbol
+        /// Fetches the trading segment inside Market.India, E.g: NSE, BSE for the given token
         /// </summary>
-        /// <param name="symbol">A Lean symbol instance</param>
-        /// <returns>exchnage</returns>
-        public string GetDefaultExchange(Symbol symbol)
+        /// <param name="symbol">LEAN symbol</param>
+        /// <returns>An exchange value for the given token</returns>
+        public string GetExchange(Symbol symbol)
         {
             if (symbol == null)
             {
                 throw new ArgumentNullException(nameof(symbol));
             }
-            var exchange = "NSE";
             var brokerageSymbol = ConvertLeanSymbolToSamcoSymbol(symbol.Value);
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).FirstOrDefault();
+            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
             if (scrip != null)
             {
-                exchange = scrip.Exchange.ToUpperInvariant();
+                return scrip.Exchange;
+            }
+            // Modify for NSE Equities
+            var nseTicker = brokerageSymbol + "-EQ";
+            scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).SingleOrDefault();
+            if (scrip == null)
+            {
+                throw new ArgumentException($"SamcoSymbolMapper.GetExchange(): Invalid Samco symbol {brokerageSymbol}");
+            }
+            return scrip.Exchange;
+        }
+
+        /// <summary>
+        /// Fetches the trading segment inside Market.India, E.g: NSE, BSE for the given token
+        /// </summary>
+        /// <param name="listingid">The Samco Instrument Token</param>
+        /// <returns>An exchange value for the given token</returns>
+        public string GetExchange(string listingid)
+        {
+            if (listingid.IsNullOrEmpty())
+            {
+                throw new ArgumentNullException(listingid);
+            }
+            if (!_listingidExchangeMapping.TryGetValue(listingid, out string exchange))
+            {
+                throw new Exception($"SamcoSymbolMapper.GetExchange(): scrip not found for given listingID {listingid}");
             }
             return exchange;
         }
@@ -241,18 +303,17 @@ namespace QuantConnect.Brokerages.Samco
             }
 
             if (string.IsNullOrWhiteSpace(brokerageSymbol))
-                throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
+                throw new ArgumentException($"SamcoSymbolMapper.GetLeanSymbol(): Invalid Samco symbol {brokerageSymbol}");
 
             if (securityType == SecurityType.Forex || securityType == SecurityType.Cfd || securityType == SecurityType.Commodity || securityType == SecurityType.Crypto)
-                throw new ArgumentException($"Unsupported security type: {securityType}");
+                throw new ArgumentException($"SamcoSymbolMapper.GetLeanSymbol(): Unsupported security type {securityType}");
 
             if (!Market.Encode(market.ToLowerInvariant()).HasValue)
-                throw new ArgumentException($"Invalid market: {market}");
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).First();
-
+                throw new ArgumentException($"SamcoSymbolMapper.GetLeanSymbol(): Invalid market {market}");
+            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
             if (scrip == null)
             {
-                throw new ArgumentException($"Invalid Samco symbol: {brokerageSymbol}");
+                throw new ArgumentException($"SamcoSymbolMapper.GetLeanSymbol(): Invalid Samco symbol {brokerageSymbol}");
             }
             return CreateLeanSymbol(scrip);
         }
@@ -278,7 +339,7 @@ namespace QuantConnect.Brokerages.Samco
         private static string ConvertLeanSymbolToSamcoSymbol(string leanSymbol)
         {
             if (string.IsNullOrWhiteSpace(leanSymbol))
-                throw new ArgumentException($"Invalid Lean symbol: {leanSymbol}");
+                throw new ArgumentException($"SamcoSymbolMapper.ConvertLeanSymbolToSamcoSymbol(): Invalid Lean symbol {leanSymbol}");
 
             // return as it is due to Samco has similar Symbol format
             return leanSymbol.ToUpperInvariant();
@@ -290,7 +351,7 @@ namespace QuantConnect.Brokerages.Samco
         private static string ConvertSamcoSymbolToLeanSymbol(string samcoSymbol)
         {
             if (string.IsNullOrWhiteSpace(samcoSymbol))
-                throw new ArgumentException($"Invalid Samco symbol: {samcoSymbol}");
+                throw new ArgumentException($"SamcoSymbolMapper.ConvertLeanSymbolToSamcoSymbol(): Invalid Samco symbol {samcoSymbol}");
 
             // return as it is due to Samco has similar Symbol format
             return samcoSymbol.ToUpperInvariant();
