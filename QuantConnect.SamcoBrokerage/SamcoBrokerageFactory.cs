@@ -72,7 +72,8 @@ namespace QuantConnect.Brokerages.Samco
                 job.BrokerageData["samco-client-password"],
                 job.BrokerageData["samco-year-of-birth"],
                 algorithm,
-                Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager")));
+                Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"),
+                    forceTypeNameOnExisting:false));
             //Add the brokerage to the composer to ensure its accessible to the live data feed.
             Composer.Instance.AddPart<IDataQueueHandler>(brokerage);
             return brokerage;
