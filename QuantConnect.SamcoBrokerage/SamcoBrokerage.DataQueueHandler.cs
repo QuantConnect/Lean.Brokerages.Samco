@@ -42,7 +42,8 @@ namespace QuantConnect.Brokerages.Samco
                 job.BrokerageData["samco-client-password"],
                 job.BrokerageData["samco-year-of-birth"],
                 null,
-                Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"))
+                Composer.Instance.GetExportedValueByTypeName<IDataAggregator>(Config.Get("data-aggregator", "QuantConnect.Lean.Engine.DataFeeds.AggregationManager"),
+                    forceTypeNameOnExisting:false)
             );
 
             if (!IsConnected)
