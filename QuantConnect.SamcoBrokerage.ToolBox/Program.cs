@@ -13,16 +13,45 @@
  * limitations under the License.
 */
 
+using QuantConnect.Configuration;
 using QuantConnect.ToolBox.SamcoDataDownloader;
+using System;
+using static QuantConnect.Configuration.ApplicationParser;
 
 namespace QuantConnect.TemplateBrokerage.ToolBox
 {
-    static class Program
+    internal static class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            var downloader = new SamcoDataDownloaderProgram();
+            var optionsObject = ToolboxArgumentParser.ParseArguments(args);
+            if (optionsObject.Count == 0)
+            {
+                PrintMessageAndExit();
+            }
 
+            if (!optionsObject.TryGetValue("app", out var targetApp))
+            {
+                PrintMessageAndExit(1, "ERROR: --app value is required");
+            }
+
+            var targetAppName = targetApp.ToString();
+            if (targetAppName.Contains("download") || targetAppName.Contains("dl"))
+            {
+                var fromDate = Parse.DateTimeExact(GetParameterOrExit(optionsObject, "from-date"), "yyyyMMdd-HH:mm:ss");
+                var resolution = optionsObject.ContainsKey("resolution") ? optionsObject["resolution"].ToString() : "";
+                var market = optionsObject.ContainsKey("market") ? optionsObject["market"].ToString() : "";
+                var securityType = optionsObject.ContainsKey("security-type") ? optionsObject["security-type"].ToString() : "";
+                var tickers = ToolboxArgumentParser.GetTickers(optionsObject);
+                var toDate = optionsObject.ContainsKey("to-date")
+                    ? Parse.DateTimeExact(optionsObject["to-date"].ToString(), "yyyyMMdd-HH:mm:ss")
+                    : DateTime.UtcNow;
+                SamcoDataDownloaderProgram.SamcoDataDownloader(tickers, market, resolution, securityType, fromDate, toDate);
+            }
+            else
+            {
+                PrintMessageAndExit(1, "ERROR: Unrecognized --app value");
+            }
         }
     }
 }

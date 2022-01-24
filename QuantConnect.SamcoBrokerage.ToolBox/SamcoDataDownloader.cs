@@ -18,7 +18,6 @@ using QuantConnect.Configuration;
 using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Logging;
-using QuantConnect.Securities;
 using QuantConnect.Util;
 using System;
 using System.Collections.Generic;
@@ -62,7 +61,6 @@ namespace QuantConnect.ToolBox.SamcoDataDownloader
 
                 // Load settings from config.json and create downloader
                 var dataDirectory = Globals.DataFolder;
-                var marketHoursDatabase = MarketHoursDatabase.FromDataFolder();
                 var symbolMapper = new SamcoSymbolMapper();
 
                 foreach (var pair in tickers)
