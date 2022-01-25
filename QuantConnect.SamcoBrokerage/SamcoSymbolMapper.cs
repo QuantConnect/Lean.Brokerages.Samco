@@ -182,15 +182,13 @@ namespace QuantConnect.Brokerages.Samco
             List<ScripMaster> tokenList = new();
             if (leanSymbol.SecurityType == SecurityType.Equity)
             {
-                // Modify for NSE Equities
-                var nseTicker = leanSymbol.ID.Symbol + "-EQ";
-                var nseScrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).SingleOrDefault();
+                var nseScrip = GetSymbolFromNseEquitySegment(leanSymbol.ID.Symbol); ;
                 if (nseScrip != null)
                 {
                     tokenList.Add(nseScrip);
                 } 
             }
-            var scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == leanSymbol.ID.Symbol).SingleOrDefault();
+            var scrip = GetSymbolFromAllSegmentExceptNseEquity(leanSymbol.ID.Symbol);
             if (scrip != null)
             {
                 tokenList.Add(scrip);
@@ -216,7 +214,7 @@ namespace QuantConnect.Brokerages.Samco
             if (string.IsNullOrWhiteSpace(brokerageSymbol))
                 throw new ArgumentException($"SamcoSymbolMapper.GetBrokerageSecurityType(): Invalid Samco symbol {brokerageSymbol}");
 
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
+            var scrip = GetSymbolFromAllSegment(brokerageSymbol);
             if (scrip == null)
             {
                 throw new ArgumentException($"SamcoSymbolMapper.GetBrokerageSecurityType(): Invalid Samco symbol {brokerageSymbol}");
@@ -252,14 +250,7 @@ namespace QuantConnect.Brokerages.Samco
                 throw new ArgumentNullException(nameof(symbol));
             }
             var brokerageSymbol = ConvertLeanSymbolToSamcoSymbol(symbol.Value);
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
-            if (scrip != null)
-            {
-                return scrip.Exchange;
-            }
-            // Modify for NSE Equities
-            var nseTicker = brokerageSymbol + "-EQ";
-            scrip = _samcoTradableSymbolList.Where(x => x.TradingSymbol.ToUpperInvariant() == nseTicker).SingleOrDefault();
+            var scrip = GetSymbolFromAllSegment(brokerageSymbol);
             if (scrip == null)
             {
                 throw new ArgumentException($"SamcoSymbolMapper.GetExchange(): Invalid Samco symbol {brokerageSymbol}");
@@ -310,7 +301,7 @@ namespace QuantConnect.Brokerages.Samco
 
             if (!Market.Encode(market.ToLowerInvariant()).HasValue)
                 throw new ArgumentException($"SamcoSymbolMapper.GetLeanSymbol(): Invalid market {market}");
-            var scrip = _samcoTradableSymbolList.Where(s => s.TradingSymbol == brokerageSymbol).SingleOrDefault();
+            var scrip = GetSymbolFromAllSegment(brokerageSymbol);
             if (scrip == null)
             {
                 throw new ArgumentException($"SamcoSymbolMapper.GetLeanSymbol(): Invalid Samco symbol {brokerageSymbol}");
@@ -331,6 +322,60 @@ namespace QuantConnect.Brokerages.Samco
         {
             var market = Market.India;
             return GetLeanSymbol(brokerageSymbol, securityType, market, expirationDate, strike, optionRight);
+        }
+
+        /// <summary>
+        /// Checks if the symbol is supported by Samco
+        /// </summary>
+        /// <param name="brokerageSymbol">The Samco symbol</param>
+        /// <returns>True if Samco supports the symbol otherwise false</returns>
+        public bool IsKnownBrokerageSymbol(string brokerageSymbol)
+        {
+            var scrip = GetSymbolFromAllSegment(brokerageSymbol);
+            if (scrip != null)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Get symbol from All available segmens like NSE, BSE, CDS
+        /// </summary>
+        /// <param name="brokerageSymbol">The Samco symbol</param>
+        /// <returns>An instance of <see cref="ScripMaster"/> class</returns>
+        public ScripMaster GetSymbolFromAllSegment(string brokerageSymbol)
+        {
+            if (string.IsNullOrWhiteSpace(brokerageSymbol))
+            {
+                return null;
+            }
+            var scrip = GetSymbolFromAllSegmentExceptNseEquity(brokerageSymbol);
+            if (scrip != null)
+            {
+                return scrip;
+            }
+            return GetSymbolFromNseEquitySegment(brokerageSymbol);
+        }
+
+        /// <summary>
+        /// Gets trading symbol from NSE Equity Segment
+        /// </summary>
+        /// <returns>An instance of <see cref="ScripMaster"/> class</returns>
+        private ScripMaster GetSymbolFromNseEquitySegment(string tradingSymbol)
+        {
+            // Modify for NSE Equities
+            var nseTicker = tradingSymbol.ToUpperInvariant() + "-EQ";
+            return _samcoTradableSymbolList.Where(x => x.TradingSymbol == nseTicker).SingleOrDefault();
+        }
+
+        /// <summary>
+        /// Gets trading symbol from All Segments except NSE Equity Segment
+        /// </summary>
+        /// <returns>An instance of <see cref="ScripMaster"/> class</returns>
+        private ScripMaster GetSymbolFromAllSegmentExceptNseEquity(string tradingSymbol)
+        {
+            return _samcoTradableSymbolList.Where(s => s.TradingSymbol == tradingSymbol.ToUpperInvariant()).SingleOrDefault();
         }
 
         /// <summary>
