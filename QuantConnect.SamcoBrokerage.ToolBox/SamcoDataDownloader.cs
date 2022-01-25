@@ -125,13 +125,19 @@ namespace QuantConnect.ToolBox.SamcoDataDownloader
             }
 
             if (resolution == Resolution.Tick || resolution == Resolution.Second)
+            {
                 throw new ArgumentException($"Resolution not available: {resolution}");
+            } 
 
             if (!_symbolMapper.IsKnownBrokerageSymbol(symbol.ID.Symbol))
+            {
                 throw new ArgumentException($"The ticker {symbol.Value} is not available.");
+            }   
 
             if (endUtc < startUtc)
+            {
                 throw new ArgumentException("The end date must be greater or equal than the start date.");
+            }
 
             if (securityType == SecurityType.Forex || securityType == SecurityType.Cfd || securityType == SecurityType.Crypto || securityType == SecurityType.Base)
             {
