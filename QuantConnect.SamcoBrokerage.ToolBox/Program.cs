@@ -46,7 +46,8 @@ namespace QuantConnect.TemplateBrokerage.ToolBox
                 var toDate = optionsObject.ContainsKey("to-date")
                     ? Parse.DateTimeExact(optionsObject["to-date"].ToString(), "yyyyMMdd-HH:mm:ss")
                     : DateTime.UtcNow;
-                SamcoDataDownloaderProgram.SamcoDataDownloader(tickers, market, resolution, securityType, fromDate, toDate);
+                var samcoDownloader = new SamcoDataDownloaderProgram();
+                samcoDownloader.SamcoDataDownloader(tickers, market, resolution, securityType, fromDate, toDate);
             }
             else
             {
