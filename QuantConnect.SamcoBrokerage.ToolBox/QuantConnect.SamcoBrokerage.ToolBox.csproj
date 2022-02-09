@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
-
-        <IsPackable>false</IsPackable>
         <Copyright>Copyright ©  2021</Copyright>
         <OutputPath>bin\$(Configuration)\</OutputPath>
         <Product>QuantConnect.SamcoBrokerage.ToolBox</Product>
@@ -12,6 +12,9 @@
         <RootNamespace>QuantConnect.SamcoBrokerage.ToolBox</RootNamespace>
         <AssemblyTitle>QuantConnect.SamcoBrokerage.ToolBox</AssemblyTitle>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Description>QuantConnect LEAN Samco Brokerage: Samco Brokerage toolbox plugin for Lean</Description>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <OutputPath>bin\Debug\</OutputPath>
