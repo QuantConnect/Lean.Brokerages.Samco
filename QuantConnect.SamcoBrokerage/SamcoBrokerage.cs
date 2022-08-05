@@ -319,11 +319,11 @@ namespace QuantConnect.Brokerages.Samco
             var response = _samcoAPI.GetUserLimits();
             if (response != null)
             {
-                if (_tradingSegment == "EQUITY")
+                if (_tradingSegment.ToUpperInvariant() == "EQUITY")
                 {
                     amt = Convert.ToDecimal(response.EquityLimit.NetAvailableMargin, CultureInfo.InvariantCulture);
                 }
-                else if (_tradingSegment == "COMMODITY")
+                else if (_tradingSegment.ToUpperInvariant() == "COMMODITY")
                 {
                     amt = Convert.ToDecimal(response.CommodityLimit.NetAvailableMargin, CultureInfo.InvariantCulture);
                 }
@@ -957,12 +957,12 @@ namespace QuantConnect.Brokerages.Samco
                             }
 
                             //Process cancelled orders here.
-                            if (response.orderStatus == "CANCELLED")
+                            if (response.orderStatus.ToUpperInvariant() == "CANCELLED")
                             {
                                 OnOrderClose(response.orderDetails);
                             }
 
-                            if (response.orderStatus == "EXECUTED")
+                            if (response.orderStatus.ToUpperInvariant() == "EXECUTED")
                             {
                                 // Process rest of the orders here.
                                 EmitFillOrder(response);
@@ -1046,7 +1046,7 @@ namespace QuantConnect.Brokerages.Samco
         private void OnOrderClose(OrderDetails orderDetails)
         {
             var brokerId = orderDetails.orderNumber;
-            if (orderDetails.orderStatus == "CANCELLED")
+            if (orderDetails.orderStatus.ToUpperInvariant() == "CANCELLED")
             {
                 var order = CachedOrderIDs
                     .FirstOrDefault(o => o.Value.BrokerId.Contains(brokerId))
