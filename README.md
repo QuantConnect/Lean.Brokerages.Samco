@@ -22,6 +22,7 @@ This repository hosts the Samco Brokerage Plugin Integration with the QuantConne
 
 [Samco](https://www.samco.in/) was founded by Jimeet Modi in 2015 with a mission of providing retail investors access to sophisticated financial technology that can assist retail investors in creating wealth at a low cost. Samco provides access to India Equities for clients in India with no minimum balance. Samco also provides stock ratings, mutual funds, and a mini-portfolio investment platform.
 
+For more information about the Samco brokerage, see the [QuantConnect-Samco Integration Page](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco).
 
 ## Using the Brokerage Plugin
   
@@ -34,7 +35,7 @@ This repository hosts the Samco Brokerage Plugin Integration with the QuantConne
 Follow these steps to start local live trading with the Samco brokerage:
 
 1.  Open a terminal in your [CLI root directory](https://www.quantconnect.com/docs/v2/lean-cli/initialization/directory-structure#02-lean-init).
-2.  Run lean live "`<projectName>`" to start a live deployment wizard for the project in ./`<projectName>` and then enter the brokerage number.
+2.  Run `lean live "<projectName>`" to start a live deployment wizard for the project in ./`<projectName>` and then enter the brokerage number.
 
     ```
     $ lean live 'My Project'
@@ -66,7 +67,7 @@ Follow these steps to start local live trading with the Samco brokerage:
     1. Organization 1
     2. Organization 2
     3. Organization 3
-       Enter an option: 1
+    Enter an option: 1
     ```
 
 4.  Enter your Samco credentials.
@@ -85,7 +86,7 @@ Follow these steps to start local live trading with the Samco brokerage:
 
     The product type must be set to MIS if you are targeting intraday products, CNC if you are targeting delivery products
     or NRML if you are targeting carry forward products.
-    Product type (mis, cnc, nrml) [MIS]:
+    Product type (mis, cnc, nrml) [mis]:
     ```
 
 6.  Enter your Samco trading segment.
@@ -95,7 +96,7 @@ Follow these steps to start local live trading with the Samco brokerage:
 
     The trading segment must be set to EQUITY if you are trading equities on NSE or BSE, or COMMODITY if you are trading
     commodities on MCX.
-    Trading segment (equity, commodity) [EQUITY]:
+    Trading segment (equity, commodity) [equity]:
     ```
 
 7.  Enter the number of the data feed to use and then follow the steps required for the data connection.
@@ -119,13 +120,12 @@ Follow these steps to start local live trading with the Samco brokerage:
     13. IQFeed
     14. Polygon Data Feed
     15. Custom Data Only
-  
-        To enter multiple options, separate them with comma:
+    To enter multiple options, separate them with comma:
     ```
 
-8. View the result in the `<projectName>`/live/`<timestamp>` directory. Results are stored in real-time in JSON format. You can save results to a different directory by providing the --output `<path>` option in step 2.
+8. View the result in the `<projectName>/live/<timestamp>` directory. Results are stored in real-time in JSON format. You can save results to a different directory by providing the `--output <path>` option in step 2.
 
-If you already have a live environment configured in your [Lean configuration file](https://www.quantconnect.com/docs/v2/lean-cli/initialization/configuration#03-Lean-Configuration), you can skip the interactive wizard by providing the --environment `<value>` option in step 2. The value of this option must be the name of an environment which has live-mode set to true.
+If you already have a live environment configured in your [Lean configuration file](https://www.quantconnect.com/docs/v2/lean-cli/initialization/configuration#03-Lean-Configuration), you can skip the interactive wizard by providing the `--environment <value>` option in step 2. The value of this option must be the name of an environment which has `live-mode` set to true.
 
 ## Account Types
 
@@ -149,8 +149,8 @@ Samco supports trading India Equities with the following order types:
 
 For local deployment, the algorithm needs to download the following dataset:
 
-[India Equities](https://www.quantconnect.com/datasets/truedata-india-equities) provided by TrueData
-[India Equity Security Master](https://www.quantconnect.com/datasets/truedata-india-equity-security-master) provided by TrueData
+- [India Equities](https://www.quantconnect.com/datasets/truedata-india-equities) provided by TrueData
+- [India Equity Security Master](https://www.quantconnect.com/datasets/truedata-india-equity-security-master) provided by TrueData
 
 
 ## Brokerage Model
