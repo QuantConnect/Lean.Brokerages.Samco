@@ -26,9 +26,13 @@ For more information about the Samco brokerage, see the [QuantConnect-Samco Inte
 
 ## Using the Brokerage Plugin
   
-### QuantConnect Cloud
+### Deploying Samco with VSCode User Interace
 
-  This plugin is integrated in the QuantConnect Cloud Platform where you can use this integration with a simple visual interface, and harness the QuantConnect Live Data Feed. For most users this is substantially cheaper and easier than self-hosting. For more information see the [Samco brokerage documentation](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco). 
+  You can deploy using a visual interface in the QuantConnect cloud. For instructions, see the [QuantConnect-Samco brokerage documentation](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco). 
+  
+  ![deploy-samco](https://user-images.githubusercontent.com/38889814/188248016-587d3861-9cfe-424f-95f9-60fbe30e17ce.gif)
+  
+  In the QuantConnect Cloud Platform, you can harness the QuantConnect Live Data Feed. For most users, this is substantially cheaper and easier than self-hosting.
   
 ### Locally
 
