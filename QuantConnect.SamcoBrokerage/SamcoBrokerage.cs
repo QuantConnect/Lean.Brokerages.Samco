@@ -741,7 +741,7 @@ namespace QuantConnect.Brokerages.Samco
                     .Value;
                 if (order == null)
                 {
-                    order = _algorithm.Transactions.GetOrdersByBrokerageId(brokerId).SingleOrDefault();
+                    order = _algorithm.Transactions.GetOrdersByBrokerageId(brokerId)?.SingleOrDefault();
                     if (order == null)
                     {
                         // not our order, nothing else to do here
@@ -1053,7 +1053,7 @@ namespace QuantConnect.Brokerages.Samco
                     .Value;
                 if (order == null)
                 {
-                    order = _algorithm.Transactions.GetOrdersByBrokerageId(brokerId).SingleOrDefault();
+                    order = _algorithm.Transactions.GetOrdersByBrokerageId(brokerId)?.SingleOrDefault();
                     if (order == null)
                     {
                         // not our order, nothing else to do here
