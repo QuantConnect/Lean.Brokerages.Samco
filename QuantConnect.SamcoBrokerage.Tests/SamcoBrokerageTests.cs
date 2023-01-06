@@ -25,6 +25,7 @@ using QuantConnect.Orders;
 using QuantConnect.Securities;
 using QuantConnect.Tests.Common.Securities;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -127,14 +128,14 @@ namespace QuantConnect.Tests.Brokerages.Samco
             var order = PlaceOrderWaitForStatus(parameters.CreateLongOrder(GetDefaultQuantity()), parameters.ExpectedStatus);
 
             var canceledOrderStatusEvent = new ManualResetEvent(false);
-            EventHandler<OrderEvent> orderStatusCallback = (sender, fill) =>
+            EventHandler<List<OrderEvent>> ordersStatusCallback = (sender, fill) =>
             {
-                if (fill.Status == OrderStatus.Canceled)
+                if (fill.Single().Status == OrderStatus.Canceled)
                 {
                     canceledOrderStatusEvent.Set();
                 }
             };
-            Brokerage.OrderStatusChanged += orderStatusCallback;
+            Brokerage.OrdersStatusChanged += ordersStatusCallback;
             var cancelResult = false;
             try
             {
@@ -241,8 +242,9 @@ namespace QuantConnect.Tests.Brokerages.Samco
             var qty = 1000000m;
             var remaining = qty;
             var sync = new object();
-            Brokerage.OrderStatusChanged += (sender, orderEvent) =>
+            Brokerage.OrdersStatusChanged += (sender, orderEvents) =>
             {
+                var orderEvent = orderEvents.Single();
                 lock (sync)
                 {
                     remaining -= orderEvent.FillQuantity;
