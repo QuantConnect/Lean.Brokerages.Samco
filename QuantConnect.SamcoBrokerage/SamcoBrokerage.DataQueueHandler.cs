@@ -91,7 +91,10 @@ namespace QuantConnect.Brokerages.Samco
         {
             var market = symbol.ID.Market;
             var securityType = symbol.ID.SecurityType;
-            if (symbol.Value.IndexOfInvariant("universe", true) != -1) return false;
+            if (symbol.Value.IndexOfInvariant("universe", true) != -1 || symbol.IsCanonical())
+            {
+                return false;
+            }
             // Include future options as a special case with no matching market, otherwise our
             // subscriptions are removed without any sort of notice.
             return
