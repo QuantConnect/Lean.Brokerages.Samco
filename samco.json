@@ -1,0 +1,17 @@
+{
+	"description": "Samco provides trading access to Indian Equities on the NSE and BSE, and a streaming datafeed. Samco has been integrated with QuantConnect website for live trading, but can be used with the LEAN CLI and Local Platform for backtesting.",
+	
+	"platforms-features": [
+		{
+			"Platforms": ["Cloud Platform", "Local Platform", "LEAN CLI"],
+			"Download Data": [0,1,1],
+			"Backtesting": [0,1,1],
+			"Optimization": [0,1,1],
+			"Live Trading":	[1,1,1]
+		}
+	],
+	"order-types": [ "Market", "Limit", "Stop Market"],
+	"assets": [ "Equity" ], 
+	"brokerage-url": "https://www.samco.in/",
+	"documentation": "/docs/v2/cloud-platform/live-trading/brokerages/samco"
+}
