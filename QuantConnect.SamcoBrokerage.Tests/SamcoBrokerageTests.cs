@@ -68,7 +68,7 @@ namespace QuantConnect.Tests.Brokerages.Samco
             var algorithm = new Mock<IAlgorithm>();
             algorithm.Setup(a => a.Transactions).Returns(transactions);
             algorithm.Setup(a => a.BrokerageModel).Returns(new SamcoBrokerageModel());
-            algorithm.Setup(a => a.Portfolio).Returns(new SecurityPortfolioManager(securities, transactions));
+            algorithm.Setup(a => a.Portfolio).Returns(new SecurityPortfolioManager(securities, transactions, new AlgorithmSettings()));
 
             var apiSecret = Config.Get("samco-client-password");
             var apiKey = Config.Get("samco-client-id");
