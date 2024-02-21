@@ -43,7 +43,7 @@ namespace QuantConnect.Tests.Brokerages.Samco
         }
 
         [TestCase("tcs")]
-        [TestCase("hdfc")]
+        [TestCase("ltts")]
         public void IsKnownBrokerageSymbol(string symbol)
         {
             Assert.IsTrue(_symbolMapper.IsKnownBrokerageSymbol(symbol));
