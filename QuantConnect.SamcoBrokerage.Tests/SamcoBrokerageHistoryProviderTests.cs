@@ -20,6 +20,7 @@ using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Logging;
 using QuantConnect.Securities;
+using QuantConnect.Tests.Engine.DataFeeds;
 using System;
 
 namespace QuantConnect.Tests.Brokerages.Samco
@@ -34,61 +35,77 @@ namespace QuantConnect.Tests.Brokerages.Samco
                 return new[]
                 {
                     // valid parameters
-                    new TestCaseData(Symbols.SBIN, Resolution.Tick, Time.OneMinute, false),
-                    new TestCaseData(Symbols.SBIN, Resolution.Second, Time.OneMinute, false),
-                    new TestCaseData(Symbols.SBIN, Resolution.Minute, Time.OneHour, false),
-                    new TestCaseData(Symbols.SBIN, Resolution.Hour, Time.OneDay, false),
-                    new TestCaseData(Symbols.SBIN, Resolution.Daily, TimeSpan.FromDays(15), false),
-                    new TestCaseData(Symbols.SBIN, Resolution.Daily, TimeSpan.FromDays(-15), false)
+                    new TestCaseData(Symbols.SBIN, Resolution.Minute, TickType.Trade, Time.OneHour, false),
+
+                    // invalid resolution
+                    new TestCaseData(Symbols.SBIN, Resolution.Tick, TickType.Trade, Time.OneMinute, true),
+                    new TestCaseData(Symbols.SBIN, Resolution.Second, TickType.Trade, Time.OneMinute, true),
+                    new TestCaseData(Symbols.SBIN, Resolution.Hour, TickType.Trade, Time.OneDay, true),
+                    new TestCaseData(Symbols.SBIN, Resolution.Daily, TickType.Trade, TimeSpan.FromDays(15), true),
+
+                    // invalid tick type
+                    new TestCaseData(Symbols.SBIN, Resolution.Minute, TickType.Quote, Time.OneHour, true),
+                    new TestCaseData(Symbols.SBIN, Resolution.Minute, TickType.OpenInterest, Time.OneHour, true),
+
+                    // invalid security type
+                    new TestCaseData(Symbols.USDJPY, Resolution.Minute, TickType.Trade, Time.OneHour, true),
+
+                    // invalid market
+                    new TestCaseData(Symbol.Create("SBIN", SecurityType.Equity, Market.USA), Resolution.Minute, TickType.Trade, Time.OneHour, true),
+
+                    // invalid time range
+                    new TestCaseData(Symbols.SBIN, Resolution.Minute, TickType.Trade, TimeSpan.FromDays(-15), true),
                 };
             }
         }
 
         [Test, TestCaseSource(nameof(TestParameters))]
-        public void GetsHistory(Symbol symbol, Resolution resolution, TimeSpan period, bool throwsException)
+        public void GetsHistory(Symbol symbol, Resolution resolution, TickType tickType, TimeSpan period, bool unsupported)
         {
-            TestDelegate test = () =>
+            var apiSecret = Config.Get("samco-client-password");
+            var apiKey = Config.Get("samco-client-id");
+            var yob = Config.Get("samco-year-of-birth");
+            var tradingSegment = Config.Get("samco-trading-segment");
+            var productType = Config.Get("samco-product-type");
+
+            var now = DateTime.UtcNow;
+
+            var algorithm = new AlgorithmStub();
+            algorithm.Portfolio = new SecurityPortfolioManager(new SecurityManager(new TimeKeeper(now)), algorithm.Transactions, algorithm.Settings);
+            var security = algorithm.AddSecurity(symbol);
+            algorithm.Portfolio.Securities.Add(security);
+
+            var brokerage = new SamcoBrokerage(tradingSegment, productType, apiKey, apiSecret, yob, algorithm, null);
+
+            var request = new HistoryRequest(now.Add(-period),
+                now,
+                typeof(TradeBar),
+                symbol,
+                resolution,
+                SecurityExchangeHours.AlwaysOpen(TimeZones.Kolkata),
+                TimeZones.Kolkata,
+                Resolution.Minute,
+                false,
+                false,
+                DataNormalizationMode.Adjusted,
+                tickType);
+
+            var history = brokerage.GetHistory(request);
+
+            if (unsupported)
             {
-                var apiSecret = Config.Get("samco-client-password");
-                var apiKey = Config.Get("samco-client-id");
-                var yob = Config.Get("samco-year-of-birth");
-                var tradingSegment = Config.Get("samco-trading-segment");
-                var productType = Config.Get("samco-product-type");
-                var brokerage = new SamcoBrokerage(tradingSegment, productType, apiKey, apiSecret, yob, null, null);
-
-                var now = DateTime.UtcNow;
-
-                var request = new HistoryRequest(now.Add(-period),
-                    now,
-                    typeof(TradeBar),
-                    symbol,
-                    resolution,
-                    SecurityExchangeHours.AlwaysOpen(TimeZones.Kolkata),
-                    TimeZones.Kolkata,
-                    Resolution.Minute,
-                    false,
-                    false,
-                    DataNormalizationMode.Adjusted,
-                    TickType.Trade);
-
-                var history = brokerage.GetHistory(request);
-
-                foreach (var slice in history)
-                {
-                    Log.Trace("{0}: {1} - {2} / {3}", slice.Time, slice.Symbol, slice.Price, slice.IsFillForward);
-                }
-
-                Log.Trace("Base currency: " + brokerage.AccountBaseCurrency);
-            };
-
-            if (throwsException)
-            {
-                Assert.Throws<ArgumentException>(test);
+                Assert.IsNull(history);
+                return;
             }
-            else
+
+            Assert.IsNotNull(history);
+
+            foreach (var slice in history)
             {
-                Assert.DoesNotThrow(test);
+                Log.Trace("{0}: {1} - {2} / {3}", slice.Time, slice.Symbol, slice.Price, slice.IsFillForward);
             }
+
+            Log.Trace("Base currency: " + brokerage.AccountBaseCurrency);
         }
     }
 }

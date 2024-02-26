@@ -83,6 +83,12 @@ namespace QuantConnect.Brokerages.Samco
         private Task _checkConnectionTask;
         private bool _isInitialized;
 
+        private bool _loggedInvalidTickTypeForHistory;
+        private bool _loggedInvalidSecurityTypeForHistory;
+        private bool _loggedInvalidResolutionForHistory;
+        private bool _loggedInvalidTimeRangeForHistory;
+        private bool _loggedInvalidMarketForHistory;
+
         /// <summary>
         /// The websockets client instance
         /// </summary>
@@ -346,35 +352,59 @@ namespace QuantConnect.Brokerages.Samco
             // Samco API only allows us to support history requests for TickType.Trade
             if (request.TickType != TickType.Trade)
             {
-                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidTickType",
-                    $"{request.TickType} TickType not supported, no history returned"));
-                yield break;
+                if (!_loggedInvalidTickTypeForHistory)
+                {
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidTickType",
+                        $"{request.TickType} TickType not supported, no history returned"));
+                    _loggedInvalidTickTypeForHistory = true;
+                }
+                return null;
             }
 
-            if (request.Symbol.SecurityType != SecurityType.Equity && request.Symbol.SecurityType != SecurityType.Future && request.Symbol.SecurityType != SecurityType.Option)
+            if (request.Symbol.SecurityType != SecurityType.Equity &&
+                request.Symbol.SecurityType != SecurityType.Future &&
+                request.Symbol.SecurityType != SecurityType.Option)
             {
-                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidSecurityType",
-                    $"{request.Symbol.SecurityType} security type not supported, no history returned"));
-                yield break;
+                if (!_loggedInvalidSecurityTypeForHistory)
+                {
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidSecurityType",
+                        $"{request.Symbol.SecurityType} security type not supported, no history returned"));
+                    _loggedInvalidSecurityTypeForHistory = true;
+                }
+                return null;
             }
 
-            if (request.Resolution == Resolution.Tick || request.Resolution == Resolution.Second)
+            if (request.Symbol.ID.Market != Market.India)
             {
-                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
-                    $"{request.Resolution} resolution not supported, no history returned"));
-                yield break;
-            }
-
-            if (request.StartTimeUtc >= request.EndTimeUtc)
-            {
-                OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidDateRange",
-                    "The history request start date must precede the end date, no history returned"));
-                yield break;
+                if (!_loggedInvalidMarketForHistory)
+                {
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidMarket",
+                        $"{request.Symbol.ID.Market} market not supported, no history returned"));
+                    _loggedInvalidMarketForHistory = true;
+                }
+                return null;
             }
 
             if (request.Resolution != Resolution.Minute)
             {
-                throw new ArgumentException($"SamcoBrokerage.ConvertResolution: Unsupported resolution type: {request.Resolution}");
+                if (!_loggedInvalidResolutionForHistory)
+                {
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidResolution",
+                        $"{request.Resolution} resolution not supported, no history returned"));
+                    _loggedInvalidResolutionForHistory = true;
+                }
+                return null;
+            }
+
+            if (request.StartTimeUtc >= request.EndTimeUtc)
+            {
+                if (!_loggedInvalidTimeRangeForHistory)
+                {
+                    OnMessage(new BrokerageMessageEvent(BrokerageMessageType.Warning, "InvalidDateRange",
+                        "The history request start date must precede the end date, no history returned"));
+                    _loggedInvalidTimeRangeForHistory = true;
+                }
+                return null;
             }
 
             var leanSymbol = request.Symbol;
@@ -382,16 +412,9 @@ namespace QuantConnect.Brokerages.Samco
             var exchange = _symbolMapper.GetExchange(leanSymbol);
             var isIndex = leanSymbol.SecurityType == SecurityType.Index;
 
-            var history = _samcoAPI.GetIntradayCandles(request.Symbol, exchange, request.StartTimeLocal, request.EndTimeLocal, request.Resolution, isIndex);
-
-            foreach (var baseData in history)
-            {
-                if (!securityExchange.DateTimeIsOpen(baseData.Time) && !request.IncludeExtendedMarketHours)
-                {
-                    continue;
-                }
-                yield return baseData;
-            }
+            return _samcoAPI
+                .GetIntradayCandles(request.Symbol, exchange, request.StartTimeLocal, request.EndTimeLocal, request.Resolution, isIndex)
+                .Where(baseData => securityExchange.DateTimeIsOpen(baseData.Time) || request.IncludeExtendedMarketHours);
         }
 
         /// <summary>
