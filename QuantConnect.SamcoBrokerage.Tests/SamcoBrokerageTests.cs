@@ -59,7 +59,7 @@ namespace QuantConnect.Tests.Brokerages.Samco
 
             var securities = new SecurityManager(new TimeKeeper(DateTime.UtcNow, TimeZones.Kolkata))
             {
-                { Symbol, CreateSecurity(Symbol) }
+                { Symbol, SecurityProvider.GetSecurity(Symbol) }
             };
 
             var transactions = new SecurityTransactionManager(null, securities);
