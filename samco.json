@@ -1,4 +1,7 @@
 {
+	"name" : "Samco",
+	"logo-url" : "https://cdn.quantconnect.com/i/tu/samco-logo.svg",
+	"min-deposit" : "None",
 	"description": "Samco provides trading access to Indian Equities on the NSE and BSE, and a streaming datafeed. Samco has been integrated with QuantConnect website for live trading, but can be used with the LEAN CLI and Local Platform for backtesting.",
 	
 	"platforms-features": [
