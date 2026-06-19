@@ -22,13 +22,13 @@ This repository hosts the Samco Brokerage Plugin Integration with the QuantConne
 
 [Samco](https://www.samco.in/) was founded by Jimeet Modi in 2015 with a mission of providing retail investors access to sophisticated financial technology that can assist retail investors in creating wealth at a low cost. Samco provides access to India Equities for clients in India with no minimum balance. Samco also provides stock ratings, mutual funds, and a mini-portfolio investment platform.
 
-For more information about the Samco brokerage, see the [QuantConnect-Samco Integration Page](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco).
+For more information about the Samco brokerage, see the [QuantConnect-Samco Integration Page](https://www.quantconnect.com/docs/v2/cloud-platform/live-trading/brokerages/unsupported-brokerages).
 
 ## Using the Brokerage Plugin
   
 ### Deploying Samco with VSCode User Interace
 
-  You can deploy using a visual interface in the QuantConnect cloud. For instructions, see the [QuantConnect-Samco brokerage documentation](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco). 
+  You can deploy using a visual interface in the QuantConnect cloud. For instructions, see the [QuantConnect-Samco brokerage documentation](https://www.quantconnect.com/docs/v2/cloud-platform/live-trading/brokerages/unsupported-brokerages). 
   
   ![deploy-samco](https://user-images.githubusercontent.com/38889814/188248016-587d3861-9cfe-424f-95f9-60fbe30e17ce.gif)
   
@@ -38,7 +38,7 @@ For more information about the Samco brokerage, see the [QuantConnect-Samco Inte
 
 Follow these steps to start local live trading with the Samco brokerage:
 
-1.  Open a terminal in your [CLI root directory](https://www.quantconnect.com/docs/v2/lean-cli/initialization/directory-structure#02-lean-init).
+1.  Open a terminal in your [CLI root directory](https://www.quantconnect.com/docs/v2/lean-cli/initialization/organization-workspaces#03-Directory-Structure).
 2.  Run `lean live "<projectName>`" to start a live deployment wizard for the project in ./`<projectName>` and then enter the brokerage number.
 
     ```
@@ -166,7 +166,7 @@ You can set the Brokerage Model with the following statements
 SetBrokerageModel(BrokerageName.Samco, AccountType.Cash);
 SetBrokerageModel(BrokerageName.Samco, AccountType.Margin);
 ```
-[Read Documentation](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco)
+[Read Documentation](https://www.quantconnect.com/docs/v2/cloud-platform/live-trading/brokerages/unsupported-brokerages)
 
 ### Fees
 
@@ -187,7 +187,7 @@ To check the latest fees, see the [Regulatory and Exchanges Charges page](https:
 
 We model buying power and margin calls to ensure your algorithm stays within the margin requirements.
 
-[Read Documentation](https://www.quantconnect.com/docs/v2/our-platform/live-trading/brokerages/samco)
+[Read Documentation](https://www.quantconnect.com/docs/v2/cloud-platform/live-trading/brokerages/unsupported-brokerages)
 
 #### Buying Power
 
