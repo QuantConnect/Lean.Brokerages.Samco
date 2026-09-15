@@ -20,6 +20,7 @@ using QuantConnect.Configuration;
 using QuantConnect.Data;
 using QuantConnect.Data.Market;
 using QuantConnect.Interfaces;
+using QuantConnect.Lean.Engine.Results;
 using QuantConnect.Logging;
 using QuantConnect.Orders;
 using QuantConnect.Orders.Fees;
@@ -723,6 +724,11 @@ namespace QuantConnect.Brokerages.Samco
 
             _subscriptionManager = subscriptionManager;
             _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
+
+            DeploymentDetailsHelper.Add("samco-client-id", apiKey);
+            DeploymentDetailsHelper.Add("samco-year-of-birth", yob);
+            DeploymentDetailsHelper.Add("samco-trading-segment", tradingSegment);
+            DeploymentDetailsHelper.Add("samco-product-type", productType);
 
             ValidateSubscription();
             Log.Trace("SamcoBrokerage(): Start Samco Brokerage");
