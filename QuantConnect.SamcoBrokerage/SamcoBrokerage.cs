@@ -725,7 +725,6 @@ namespace QuantConnect.Brokerages.Samco
             _subscriptionManager = subscriptionManager;
             _fillMonitorTask = Task.Factory.StartNew(FillMonitorAction, _ctsFillMonitor.Token);
 
-            DeploymentDetailsHelper.Add("samco-client-id", apiKey);
             DeploymentDetailsHelper.Add("samco-year-of-birth", yob);
             DeploymentDetailsHelper.Add("samco-trading-segment", tradingSegment);
             DeploymentDetailsHelper.Add("samco-product-type", productType);
